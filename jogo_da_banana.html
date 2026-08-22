@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogo da Banana 🍌 - O Clássico Jogo do Mico</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Google Fonts: Fredoka & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            fredoka: ['Fredoka', 'sans-serif'],
+            sans: ['Inter', 'sans-serif']
+          },
+          colors: {
+            bananaYellow: '#facc15',
+            bananaDark: '#ca8a04',
+            jungleGreen: '#15803d',
+            tableBg: '#064e3b'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Fredoka', sans-serif;
+      background: radial-gradient(circle at center, #065f46 0%, #064e3b 50%, #022c22 100%);
+      min-height: 100vh;
+      color: #f8fafc;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow-x: hidden;
+    }
+
+    .glass-panel {
+      background: rgba(6, 78, 59, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    }
+
+    .glass-modal {
+      background: rgba(2, 44, 34, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(250, 204, 21, 0.35);
+    }
+
+    .playing-card {
+      width: 82px;
+      height: 118px;
+      border-radius: 14px;
+      position: relative;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-style: preserve-3d;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    @media (min-width: 640px) {
+      .playing-card {
+        width: 102px;
+        height: 148px;
+        border-radius: 16px;
+      }
+    }
+
+    .playing-card-opp {
+      width: 72px;
+      height: 104px;
+      border-radius: 12px;
+      position: relative;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-style: preserve-3d;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    @media (min-width: 640px) {
+      .playing-card-opp {
+        width: 88px;
+        height: 128px;
+        border-radius: 14px;
+      }
+    }
+
+    .card-front {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border: 2px solid #cbd5e1;
+      color: #0f172a;
+    }
+
+    .card-back {
+      background: linear-gradient(135deg, #b45309 0%, #78350f 50%, #451a03 100%);
+      border: 2px solid #fef08a;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-banana-special {
+      background: linear-gradient(135deg, #fef08a 0%, #facc15 50%, #eab308 100%);
+      border: 3px solid #ca8a04;
+      animation: pulseGold 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseGold {
+      0%, 100% { box-shadow: 0 0 10px rgba(250, 204, 21, 0.5); }
+      50% { box-shadow: 0 0 25px rgba(250, 204, 21, 0.9); }
+    }
+
+    .playing-card:hover:not(.disabled-card), .playing-card-opp:hover:not(.disabled-card) {
+      transform: translateY(-8px) scale(1.05);
+      z-index: 30;
+    }
+
+    .mini-pair-card {
+      width: 44px;
+      height: 58px;
+      border-radius: 8px;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .mini-pair-card:hover {
+      transform: scale(1.25) translateY(-4px);
+      z-index: 20;
+    }
+
+    .active-turn-glow {
+      box-shadow: 0 0 22px #facc15;
+      border-color: #facc15 !important;
+    }
+
+    .btn-bounce {
+      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease;
+    }
+    .btn-bounce:hover { transform: scale(1.02); }
+    .btn-bounce:active { transform: scale(0.97); }
+
+    ::-webkit-scrollbar { height: 6px; width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(2, 44, 34, 0.5); }
+    ::-webkit-scrollbar-thumb { background: #ca8a04; border-radius: 999px; }
+  </style>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    try {
+      const appId = typeof __app_id !== 'undefined' ? __app_id : 'jogo-da-banana-app';
+      const defaultConfig = { apiKey: "demo", authDomain: "demo.firebaseapp.com", projectId: "demo-app" };
+      const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : defaultConfig;
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      let resolveAuth;
+      const authPromise = new Promise((resolve) => { resolveAuth = resolve; });
+
+      onAuthStateChanged(auth, (user) => {
+        if (user) resolveAuth(user);
+      });
+
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth));
+      } else {
+        signInAnonymously(auth).catch(e => console.warn("Anon Auth:", e));
+      }
+
+      window.fbCtx = { appId, auth, db, doc, setDoc, getDoc, updateDoc, onSnapshot, authPromise };
+    } catch (e) {
+      console.warn("Modo offline ativado para Firebase:", e);
+    }
+  </script>
+</head>
+<body class="flex flex-col min-h-screen text-slate-100">
+
+  <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-notification" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-amber-500 text-emerald-950 font-black px-6 py-3 rounded-2xl shadow-2xl border-2 border-yellow-200 z-50 transition-all duration-300 opacity-0 pointer-events-none transform translate-y-4">
+    <span id="toast-text"></span>
+  </div>
+
+  <header class="glass-panel sticky top-0 z-40 w-full px-4 py-3">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="window.goToMainMenu()">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-yellow-400 to-amber-500 flex items-center justify-center text-2xl shadow-lg border-2 border-yellow-200">
+          🍌
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-yellow-300 font-fredoka flex items-center gap-2">
+            JOGO DA BANANA
+            <span id="mode-badge" class="bg-amber-500/20 text-yellow-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-yellow-500/30">MICO EDITION</span>
+          </h1>
+          <p class="text-[11px] text-emerald-200 hidden sm:block">Não termine a partida com a Banana!</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 bg-emerald-950/80 border border-emerald-700/80 px-3 py-1.5 rounded-2xl text-xs font-mono">
+          <span class="text-emerald-400">Vitórias:</span>
+          <span id="stat-wins" class="font-bold text-yellow-300">0</span>
+        </div>
+        <div class="flex items-center gap-2 bg-emerald-950/80 border border-emerald-700/80 px-3 py-1.5 rounded-2xl text-xs font-mono">
+          <span class="text-red-400">Bananas:</span>
+          <span id="stat-losses" class="font-bold text-red-300">0</span>
+        </div>
+
+        <button id="sound-toggle-btn" class="w-10 h-10 bg-emerald-900/80 hover:bg-emerald-800 rounded-2xl flex items-center justify-center transition border border-emerald-700 text-yellow-300">
+          <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+        </button>
+
+        <button onclick="window.toggleRulesModal()" class="w-10 h-10 bg-amber-500/20 hover:bg-amber-500/30 rounded-2xl flex items-center justify-center transition border border-amber-500/40 text-yellow-300">
+          <i class="fa-solid fa-circle-question"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 flex flex-col justify-between items-center relative z-10">
+
+    <!-- MENU PRINCIPAL (TELA INICIAL) -->
+    <section id="menu-view" class="w-full max-w-lg my-auto glass-panel p-6 sm:p-8 rounded-3xl text-center space-y-6 border border-yellow-500/30">
+      <div class="w-24 h-24 bg-gradient-to-tr from-yellow-300 to-amber-500 rounded-3xl flex items-center justify-center text-5xl mx-auto shadow-2xl border-4 border-yellow-100 animate-bounce">
+        🍌
+      </div>
+      <div>
+        <h2 class="text-3xl font-extrabold text-yellow-300 font-fredoka">Jogo da Banana</h2>
+        <p class="text-xs text-emerald-200 mt-1">Escolha um modo de jogo para começar!</p>
+      </div>
+
+      <!-- Escolha do Modo -->
+      <div class="grid grid-cols-1 gap-4">
+        <button onclick="window.showVsAiSetup()" class="p-4 bg-gradient-to-r from-emerald-800 to-emerald-900 hover:from-emerald-700 hover:to-emerald-800 border-2 border-emerald-500 rounded-2xl flex items-center gap-4 text-left shadow-lg btn-bounce group cursor-pointer">
+          <div class="w-12 h-12 rounded-xl bg-amber-500 text-emerald-950 text-2xl flex items-center justify-center font-black group-hover:scale-110 transition">
+            🤖
+          </div>
+          <div>
+            <h3 class="font-bold text-yellow-300 text-base">Modo Contra IA</h3>
+            <p class="text-xs text-emerald-200">Jogue contra oponentes virtuais de inteligência artificial</p>
+          </div>
+        </button>
+
+        <button onclick="window.showOnlineSetup()" class="p-4 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 border-2 border-yellow-300 rounded-2xl flex items-center gap-4 text-left shadow-lg btn-bounce group cursor-pointer">
+          <div class="w-12 h-12 rounded-xl bg-emerald-950 text-yellow-300 text-2xl flex items-center justify-center font-black group-hover:scale-110 transition">
+            🌐
+          </div>
+          <div>
+            <h3 class="font-bold text-emerald-950 text-base">Modo Online (Com Código)</h3>
+            <p class="text-xs text-amber-100">Crie ou entre em uma sala com código para jogar com amigos</p>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <!-- SETUP CONTRA IA -->
+    <section id="ai-setup-view" class="w-full max-w-md my-auto glass-panel p-6 rounded-3xl text-center space-y-6 border border-yellow-500/30 hidden">
+      <div class="flex items-center justify-between border-b border-emerald-800/80 pb-3">
+        <button onclick="window.showMainMenu()" class="text-xs text-yellow-300 hover:underline flex items-center gap-1 cursor-pointer">
+          <i class="fa-solid fa-arrow-left"></i> Voltar
+        </button>
+        <h3 class="text-lg font-bold text-yellow-300">Modo Contra IA 🤖</h3>
+        <div></div>
+      </div>
+
+      <div class="space-y-3 text-left">
+        <label class="text-xs font-bold text-yellow-200 uppercase tracking-wider block">Número de Jogadores na Mesa:</label>
+        <div class="grid grid-cols-3 gap-3">
+          <button onclick="window.setPlayerCount(2)" id="pcount-2" class="pcount-btn py-3 bg-emerald-800 border-2 border-emerald-600 rounded-2xl text-center font-bold text-sm transition hover:border-yellow-400 cursor-pointer">
+            2 Jogadores
+          </button>
+          <button onclick="window.setPlayerCount(3)" id="pcount-3" class="pcount-btn py-3 bg-amber-500 border-2 border-yellow-300 rounded-2xl text-center font-bold text-sm text-emerald-950 font-black transition cursor-pointer">
+            3 Jogadores
+          </button>
+          <button onclick="window.setPlayerCount(4)" id="pcount-4" class="pcount-btn py-3 bg-emerald-800 border-2 border-emerald-600 rounded-2xl text-center font-bold text-sm transition hover:border-yellow-400 cursor-pointer">
+            4 Jogadores
+          </button>
+        </div>
+      </div>
+
+      <button onclick="window.startAiGame()" class="w-full py-4 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-emerald-950 font-black text-lg rounded-2xl shadow-xl border-b-4 border-amber-600 btn-bounce cursor-pointer">
+        <i class="fa-solid fa-play mr-2"></i> INICIAR PARTIDA
+      </button>
+    </section>
+
+    <!-- SETUP ONLINE (CRIAR OU ENTRAR EM SALA) -->
+    <section id="online-setup-view" class="w-full max-w-md my-auto glass-panel p-6 rounded-3xl text-center space-y-5 border border-yellow-500/30 hidden">
+      <div class="flex items-center justify-between border-b border-emerald-800/80 pb-3">
+        <button onclick="window.showMainMenu()" class="text-xs text-yellow-300 hover:underline flex items-center gap-1 cursor-pointer">
+          <i class="fa-solid fa-arrow-left"></i> Voltar
+        </button>
+        <h3 class="text-lg font-bold text-yellow-300">Modo Online 🌐</h3>
+        <div></div>
+      </div>
+
+      <div class="text-left space-y-1">
+        <label class="text-xs font-bold text-yellow-200 uppercase tracking-wider block">Seu Nome / Apelido:</label>
+        <input type="text" id="online-nickname-input" value="Jogador" maxlength="12" class="w-full px-4 py-3 bg-emerald-950 border border-emerald-700 rounded-xl text-yellow-300 font-bold focus:outline-none focus:border-yellow-400">
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 p-1 bg-emerald-950 rounded-2xl border border-emerald-800">
+        <button onclick="window.switchOnlineTab('create')" id="tab-btn-create" class="py-2.5 rounded-xl font-bold text-xs bg-amber-500 text-emerald-950 cursor-pointer">
+          Criar Sala
+        </button>
+        <button onclick="window.switchOnlineTab('join')" id="tab-btn-join" class="py-2.5 rounded-xl font-bold text-xs text-emerald-300 hover:text-white cursor-pointer">
+          Entrar com Código
+        </button>
+      </div>
+
+      <div id="tab-content-create" class="space-y-4 text-left">
+        <p class="text-xs text-emerald-200">Crie uma nova sala e envie o código para seus amigos entrarem na partida.</p>
+        <button onclick="window.createOnlineRoom()" class="w-full py-3.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-emerald-950 font-black text-base rounded-2xl shadow-lg btn-bounce cursor-pointer">
+          <i class="fa-solid fa-plus-circle mr-1"></i> CRIAR NOVA SALA
+        </button>
+      </div>
+
+      <div id="tab-content-join" class="space-y-4 text-left hidden">
+        <div>
+          <label class="text-xs font-bold text-yellow-200 uppercase tracking-wider block mb-1">Código da Sala (4 dígitos):</label>
+          <input type="text" id="join-code-input" placeholder="Ex: 8492" maxlength="4" class="w-full px-4 py-3 bg-emerald-950 border border-emerald-700 rounded-xl text-yellow-300 font-mono text-center font-extrabold text-xl uppercase tracking-widest focus:outline-none focus:border-yellow-400">
+        </div>
+        <button onclick="window.joinOnlineRoom()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-base rounded-2xl shadow-lg btn-bounce cursor-pointer">
+          <i class="fa-solid fa-right-to-bracket mr-1"></i> ENTRAR NA SALA
+        </button>
+      </div>
+    </section>
+
+    <!-- LOBBY DE ESPERA ONLINE -->
+    <section id="online-lobby-view" class="w-full max-w-md my-auto glass-panel p-6 rounded-3xl text-center space-y-6 border border-yellow-500/30 hidden">
+      <div>
+        <span class="text-xs font-bold text-emerald-300 uppercase tracking-wider block">Código da Sala</span>
+        <div class="inline-flex items-center gap-3 bg-emerald-950 px-6 py-3 rounded-2xl border-2 border-yellow-400/80 my-2">
+          <span id="lobby-code-display" class="font-mono font-black text-3xl text-yellow-300 tracking-widest">----</span>
+          <button onclick="window.copyRoomCode()" class="text-yellow-400 hover:text-white text-lg cursor-pointer" title="Copiar código">
+            <i class="fa-solid fa-copy"></i>
+          </button>
+        </div>
+        <p class="text-xs text-emerald-200">Compartilhe este código com seus amigos para jogarem juntos!</p>
+      </div>
+
+      <div class="text-left bg-emerald-950/80 p-4 rounded-2xl border border-emerald-700/60 space-y-3">
+        <div class="flex justify-between items-center border-b border-emerald-800 pb-2">
+          <span class="text-xs font-bold text-yellow-300 uppercase">JOGADORES NA SALA</span>
+          <span id="lobby-player-count" class="text-xs font-bold text-emerald-300 font-mono">1 / 4</span>
+        </div>
+        <div id="lobby-players-list" class="space-y-2"></div>
+      </div>
+
+      <div id="host-controls" class="space-y-2">
+        <button onclick="window.startOnlineGameHost()" id="start-online-btn" class="w-full py-4 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-emerald-950 font-black text-lg rounded-2xl shadow-xl border-b-4 border-amber-600 btn-bounce cursor-pointer">
+          <i class="fa-solid fa-play mr-2"></i> INICIAR PARTIDA ONLINE
+        </button>
+        <p class="text-[11px] text-emerald-300">Necessário pelo menos 2 jogadores para iniciar.</p>
+      </div>
+
+      <div id="guest-waiting-msg" class="hidden">
+        <div class="p-3 bg-amber-500/20 border border-amber-500/40 rounded-xl text-yellow-200 text-xs flex items-center justify-center gap-2">
+          <i class="fa-solid fa-spinner fa-spin"></i> Aguardando o criador da sala iniciar a partida...
+        </div>
+      </div>
+    </section>
+
+    <!-- ÁREA DA MESA DE JOGO (GAME TABLE) -->
+    <section id="game-table" class="w-full h-full flex-1 flex flex-col justify-between hidden space-y-4">
+
+      <!-- OPONENTES -->
+      <div id="opponents-container" class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full"></div>
+
+      <!-- CENTRO DA MESA (TURNO & PARES) -->
+      <div class="glass-panel w-full p-4 rounded-3xl flex flex-col gap-4 border border-emerald-600/40 my-2">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-emerald-800/60 pb-3">
+          <div class="flex items-center gap-3">
+            <div id="turn-indicator-badge" class="w-12 h-12 rounded-2xl bg-amber-500 text-emerald-950 font-black text-xl flex items-center justify-center shadow-lg border-2 border-yellow-200">
+              👑
+            </div>
+            <div>
+              <span class="text-[10px] font-bold text-yellow-400 uppercase tracking-wider block">TURNO ATUAL</span>
+              <h3 id="turn-status-text" class="text-base sm:text-lg font-extrabold text-white">
+                Sua Vez! Escolha uma carta do oponente.
+              </h3>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 bg-emerald-950/80 px-4 py-2 rounded-2xl border border-emerald-700/60">
+            <div class="text-2xl">🃏</div>
+            <div>
+              <span class="text-[10px] font-bold text-emerald-300 uppercase block">TOTAL DE PARES FORMADOS</span>
+              <span id="discard-pairs-count" class="text-lg font-black text-yellow-300 font-mono">0 / 12 Pares</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MESA CENTRAL DE PARES -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-yellow-300 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-layer-group text-amber-400"></i> MESA CENTRAL DE PARES FORMADOS
+            </span>
+          </div>
+          
+          <div id="central-pairs-container" class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-emerald-950/70 p-3 rounded-2xl border border-emerald-800/80 min-h-[80px]"></div>
+        </div>
+
+      </div>
+
+      <!-- MÃO DO JOGADOR -->
+      <div class="w-full glass-panel p-4 rounded-3xl border-2 border-amber-500/40 relative">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">👑</span>
+            <span id="player-hand-title" class="text-sm font-extrabold text-yellow-300">Sua Mão</span>
+            <span id="player-card-count" class="text-xs font-bold bg-amber-500/20 text-yellow-200 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+              0 Cartas
+            </span>
+          </div>
+          <span id="player-status-tag" class="text-xs font-bold text-emerald-300 bg-emerald-900/60 px-3 py-1 rounded-full border border-emerald-700">
+            Jogando
+          </span>
+        </div>
+
+        <div id="player-hand" class="flex items-center justify-center gap-2 sm:gap-3 overflow-x-auto min-h-[130px] sm:min-h-[155px] p-2"></div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL DE REGRAS -->
+  <div id="rules-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="glass-modal w-full max-w-md rounded-3xl p-6 text-left border border-yellow-500/40 space-y-4">
+      <div class="flex justify-between items-center border-b border-emerald-700/60 pb-3">
+        <h3 class="text-xl font-extrabold text-yellow-300 flex items-center gap-2">
+          <span>🍌</span> Regras do Jogo da Banana
+        </h3>
+        <button onclick="window.toggleRulesModal()" class="text-slate-400 hover:text-white text-lg cursor-pointer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="space-y-2 text-xs sm:text-sm text-emerald-100 leading-relaxed">
+        <p>1. O baralho contém 12 pares de animais idênticos e 1 carta única da **BANANA 🍌**.</p>
+        <p>2. Todos os pares iniciais da sua mão são descartados automaticamente na mesa.</p>
+        <p>3. Na sua vez, puxe 1 carta do oponente da esquerda/frente.</p>
+        <p>4. Se a carta formou par com uma sua, o par vai direto para o centro da mesa!</p>
+        <p>5. Quem esvaziar a mão fica totalmente **SALVO** 🏆.</p>
+        <p>6. O único jogador que fechar o jogo com a **BANANA** perde a partida!</p>
+      </div>
+      <button onclick="window.toggleRulesModal()" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black rounded-xl btn-bounce cursor-pointer">
+        ENTENDI, VAMOS JOGAR!
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL FIM DE JOGO -->
+  <div id="game-over-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-lg flex items-center justify-center p-4 z-50 hidden">
+    <div class="glass-modal w-full max-w-md rounded-3xl p-6 text-center border border-yellow-400/50 space-y-5">
+      <div id="go-icon" class="text-6xl mx-auto animate-bounce">
+        🏆
+      </div>
+      <div>
+        <h3 id="go-title" class="text-2xl font-black text-yellow-300">VOCÊ SE SALVOU!</h3>
+        <p id="go-message" class="text-sm text-emerald-100 mt-2 leading-relaxed"></p>
+      </div>
+
+      <div class="bg-emerald-950/80 p-4 rounded-2xl border border-emerald-700/60 flex items-center justify-center gap-3">
+        <span class="text-3xl">🍌</span>
+        <div class="text-left">
+          <span class="text-[10px] font-bold text-red-400 uppercase block">PAGOU A BANANA</span>
+          <span id="go-loser-name" class="font-extrabold text-base text-yellow-300">Oponente 1</span>
+        </div>
+      </div>
+
+      <button onclick="window.goToMainMenu()" class="w-full py-4 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-emerald-950 font-black text-lg rounded-2xl shadow-xl border-b-4 border-amber-600 btn-bounce cursor-pointer">
+        <i class="fa-solid fa-house mr-2"></i> VOLTAR AO MENU PRINCIPAL
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Helper para exibir notificações sem alert()
+    function showToast(msg) {
+      const toast = document.getElementById('toast-notification');
+      const toastText = document.getElementById('toast-text');
+      if (!toast || !toastText) return;
+      toastText.textContent = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+      }, 3000);
+    }
+
+    // Gerador de SVGs das cartas
+    function getCardGraphic(pairId, sizeClass = "w-10 h-10 sm:w-14 sm:h-14") {
+      const graphics = {
+        lion: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="44" fill="url(#lionMane)"/>
+          <circle cx="50" cy="52" r="30" fill="url(#lionFace)"/>
+          <ellipse cx="40" cy="48" rx="4" ry="5" fill="#1e293b"/>
+          <ellipse cx="60" cy="48" rx="4" ry="5" fill="#1e293b"/>
+          <circle cx="38" cy="46" r="1.5" fill="#ffffff"/>
+          <circle cx="58" cy="46" r="1.5" fill="#ffffff"/>
+          <polygon points="50,54 44,60 56,60" fill="#78350f"/>
+          <path d="M44 64 Q50 68 56 64" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>
+          <defs>
+            <radialGradient id="lionMane" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#b45309"/></radialGradient>
+            <radialGradient id="lionFace" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fef08a"/><stop offset="100%" stop-color="#facc15"/></radialGradient>
+          </defs>
+        </svg>`,
+
+        elephant: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <ellipse cx="24" cy="48" rx="18" ry="20" fill="#94a3b8"/>
+          <ellipse cx="76" cy="48" rx="18" ry="20" fill="#94a3b8"/>
+          <circle cx="50" cy="52" r="28" fill="#cbd5e1"/>
+          <circle cx="38" cy="46" r="4" fill="#0f172a"/>
+          <circle cx="62" cy="46" r="4" fill="#0f172a"/>
+          <path d="M50 56 C50 74 64 70 58 60" stroke="#94a3b8" stroke-width="7" stroke-linecap="round" fill="none"/>
+        </svg>`,
+
+        giraffe: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <rect x="42" y="28" width="16" height="60" rx="8" fill="#f59e0b"/>
+          <ellipse cx="50" cy="32" rx="22" ry="18" fill="#fbbf24"/>
+          <circle cx="34" cy="20" r="4" fill="#b45309"/>
+          <circle cx="66" cy="20" r="4" fill="#b45309"/>
+          <line x1="36" y1="22" x2="42" y2="30" stroke="#b45309" stroke-width="3"/>
+          <line x1="64" y1="22" x2="58" y2="30" stroke="#b45309" stroke-width="3"/>
+          <circle cx="38" cy="30" r="3.5" fill="#1e293b"/>
+          <circle cx="62" cy="30" r="3.5" fill="#1e293b"/>
+        </svg>`,
+
+        zebra: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <ellipse cx="50" cy="52" rx="28" ry="26" fill="#f8fafc"/>
+          <path d="M24 42 Q38 46 22 54 M76 42 Q62 46 78 54" stroke="#0f172a" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="38" cy="46" r="4" fill="#0f172a"/>
+          <circle cx="62" cy="46" r="4" fill="#0f172a"/>
+        </svg>`,
+
+        panda: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <circle cx="26" cy="32" r="14" fill="#0f172a"/>
+          <circle cx="74" cy="32" r="14" fill="#0f172a"/>
+          <ellipse cx="50" cy="54" rx="30" ry="26" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+          <ellipse cx="38" cy="48" rx="8" ry="10" fill="#0f172a" transform="rotate(-15 38 48)"/>
+          <ellipse cx="62" cy="48" rx="8" ry="10" fill="#0f172a" transform="rotate(15 62 48)"/>
+          <circle cx="39" cy="47" r="2.5" fill="#ffffff"/>
+          <circle cx="61" cy="47" r="2.5" fill="#ffffff"/>
+        </svg>`,
+
+        tiger: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="52" r="30" fill="#ea580c"/>
+          <circle cx="28" cy="30" r="9" fill="#ea580c"/>
+          <circle cx="72" cy="30" r="9" fill="#ea580c"/>
+          <path d="M50 24 L50 34 M36 30 L44 36 M64 30 L56 36" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="38" cy="48" r="4" fill="#1e293b"/>
+          <circle cx="62" cy="48" r="4" fill="#1e293b"/>
+        </svg>`,
+
+        fox: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <polygon points="18,22 38,45 14,52" fill="#ea580c"/>
+          <polygon points="82,22 62,45 86,52" fill="#ea580c"/>
+          <polygon points="50,80 20,40 80,40" fill="#f97316"/>
+          <polygon points="50,80 20,40 50,54" fill="#fff7ed"/>
+          <polygon points="50,80 80,40 50,54" fill="#fff7ed"/>
+          <circle cx="36" cy="46" r="4" fill="#1e293b"/>
+          <circle cx="64" cy="46" r="4" fill="#1e293b"/>
+          <circle cx="50" cy="74" r="5" fill="#1e293b"/>
+        </svg>`,
+
+        frog: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <circle cx="32" cy="30" r="14" fill="#16a34a"/>
+          <circle cx="68" cy="30" r="14" fill="#16a34a"/>
+          <circle cx="32" cy="30" r="7" fill="#ffffff"/>
+          <circle cx="68" cy="30" r="7" fill="#ffffff"/>
+          <circle cx="32" cy="30" r="3.5" fill="#0f172a"/>
+          <circle cx="68" cy="30" r="3.5" fill="#0f172a"/>
+          <ellipse cx="50" cy="56" rx="34" ry="24" fill="#4ade80"/>
+        </svg>`,
+
+        penguin: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <ellipse cx="50" cy="52" rx="28" ry="30" fill="#0f172a"/>
+          <ellipse cx="50" cy="56" rx="18" ry="22" fill="#ffffff"/>
+          <circle cx="40" cy="42" r="3.5" fill="#0f172a"/>
+          <circle cx="60" cy="42" r="3.5" fill="#0f172a"/>
+          <polygon points="50,46 43,53 57,53" fill="#f59e0b"/>
+        </svg>`,
+
+        owl: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <polygon points="22,18 38,36 18,38" fill="#854d0e"/>
+          <polygon points="78,18 62,36 82,38" fill="#854d0e"/>
+          <ellipse cx="50" cy="56" rx="30" ry="32" fill="#9a3412"/>
+          <ellipse cx="50" cy="60" rx="20" ry="22" fill="#fef08a"/>
+          <circle cx="36" cy="42" r="13" fill="#ffffff" stroke="#78350f" stroke-width="2"/>
+          <circle cx="64" cy="42" r="13" fill="#ffffff" stroke="#78350f" stroke-width="2"/>
+          <circle cx="36" cy="42" r="7" fill="#1e293b"/>
+          <circle cx="64" cy="42" r="7" fill="#1e293b"/>
+          <polygon points="50,46 44,54 56,54" fill="#f59e0b"/>
+        </svg>`,
+
+        koala: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <circle cx="22" cy="34" r="15" fill="#64748b"/>
+          <circle cx="78" cy="34" r="15" fill="#64748b"/>
+          <ellipse cx="50" cy="54" rx="28" ry="24" fill="#94a3b8"/>
+          <circle cx="38" cy="46" r="3.5" fill="#0f172a"/>
+          <circle cx="62" cy="46" r="3.5" fill="#0f172a"/>
+          <ellipse cx="50" cy="54" rx="8" ry="11" fill="#1e293b"/>
+        </svg>`,
+
+        rabbit: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <rect x="34" y="10" width="10" height="36" rx="5" fill="#f1f5f9"/>
+          <rect x="56" y="10" width="10" height="36" rx="5" fill="#f1f5f9"/>
+          <ellipse cx="50" cy="58" rx="26" ry="22" fill="#f8fafc"/>
+          <circle cx="38" cy="52" r="3.5" fill="#0f172a"/>
+          <circle cx="62" cy="52" r="3.5" fill="#0f172a"/>
+        </svg>`,
+
+        banana_mico: `<svg class="${sizeClass}" viewBox="0 0 100 100" fill="none">
+          <path d="M22 74 C16 45 42 18 78 20 C76 34 68 56 38 78 C30 82 24 80 22 74 Z" fill="#facc15" stroke="#ca8a04" stroke-width="3"/>
+          <path d="M78 20 C82 14 84 10 82 8 C80 6 74 12 72 16 Z" fill="#854d0e"/>
+          <circle cx="48" cy="42" r="3" fill="#0f172a"/>
+          <circle cx="60" cy="42" r="3" fill="#0f172a"/>
+        </svg>`
+      };
+
+      return graphics[pairId] || `<div class="text-2xl">❓</div>`;
+    }
+
+    class SoundEngineClass {
+      constructor() {
+        this.enabled = true;
+        this.audioCtx = null;
+      }
+
+      init() {
+        if (!this.audioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.audioCtx = new AudioContext();
+        }
+        if (this.audioCtx && this.audioCtx.state === 'suspended') {
+          this.audioCtx.resume();
+        }
+      }
+
+      playTone(freq, type, duration, gainVal = 0.1) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.audioCtx) return;
+
+        try {
+          const osc = this.audioCtx.createOscillator();
+          const gain = this.audioCtx.createGain();
+
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
+
+          gain.gain.setValueAtTime(gainVal, this.audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.audioCtx.currentTime + duration);
+
+          osc.connect(gain);
+          gain.connect(this.audioCtx.destination);
+
+          osc.start();
+          osc.stop(this.audioCtx.currentTime + duration);
+        } catch (e) {}
+      }
+
+      playCardDraw() {
+        this.playTone(400, 'sine', 0.08, 0.1);
+        setTimeout(() => this.playTone(600, 'sine', 0.1, 0.08), 40);
+      }
+
+      playBananaWarning() {
+        this.playTone(220, 'sawtooth', 0.2, 0.15);
+        setTimeout(() => this.playTone(160, 'sawtooth', 0.35, 0.2), 150);
+      }
+
+      playPairMatch() {
+        const notes = [523.25, 659.25, 783.99];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'triangle', 0.2, 0.12), idx * 80);
+        });
+      }
+
+      playVictoryFanfare() {
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'sine', 0.35, 0.15), idx * 120);
+        });
+      }
+    }
+
+    const sound = new SoundEngineClass();
+    document.addEventListener('click', () => sound.init(), { once: true });
+
+    const animalPairs = [
+      { id: 'lion', name: 'Leão' },
+      { id: 'elephant', name: 'Elefante' },
+      { id: 'giraffe', name: 'Girafa' },
+      { id: 'zebra', name: 'Zebra' },
+      { id: 'panda', name: 'Panda' },
+      { id: 'tiger', name: 'Tigre' },
+      { id: 'fox', name: 'Raposa' },
+      { id: 'frog', name: 'Sapo' },
+      { id: 'penguin', name: 'Pinguim' },
+      { id: 'owl', name: 'Coruja' },
+      { id: 'koala', name: 'Koala' },
+      { id: 'rabbit', name: 'Coelho' }
+    ];
+
+    let gameState = {
+      mode: 'ai',
+      playerCount: 3,
+      players: [],
+      currentTurnIndex: 0,
+      totalDiscardedPairs: 0,
+      wins: 0,
+      losses: 0,
+      isGameActive: false,
+      isProcessingTurn: false,
+      onlineRoomCode: null,
+      myPlayerId: "0",
+      isHost: false,
+      unsubscribeRoom: null
+    };
+
+    window.hideAllViews = function() {
+      document.getElementById('menu-view').classList.add('hidden');
+      document.getElementById('ai-setup-view').classList.add('hidden');
+      document.getElementById('online-setup-view').classList.add('hidden');
+      document.getElementById('online-lobby-view').classList.add('hidden');
+      document.getElementById('game-table').classList.add('hidden');
+      document.getElementById('game-over-modal').classList.add('hidden');
+    };
+
+    window.showMainMenu = function() {
+      if (gameState.unsubscribeRoom) {
+        gameState.unsubscribeRoom();
+        gameState.unsubscribeRoom = null;
+      }
+      window.hideAllViews();
+      document.getElementById('menu-view').classList.remove('hidden');
+    };
+
+    window.goToMainMenu = function() {
+      window.showMainMenu();
+    };
+
+    window.showVsAiSetup = function() {
+      window.hideAllViews();
+      document.getElementById('ai-setup-view').classList.remove('hidden');
+    };
+
+    window.showOnlineSetup = function() {
+      window.hideAllViews();
+      document.getElementById('online-setup-view').classList.remove('hidden');
+    };
+
+    window.switchOnlineTab = function(tab) {
+      if (tab === 'create') {
+        document.getElementById('tab-btn-create').className = "py-2.5 rounded-xl font-bold text-xs bg-amber-500 text-emerald-950 cursor-pointer";
+        document.getElementById('tab-btn-join').className = "py-2.5 rounded-xl font-bold text-xs text-emerald-300 hover:text-white cursor-pointer";
+        document.getElementById('tab-content-create').classList.remove('hidden');
+        document.getElementById('tab-content-join').classList.add('hidden');
+      } else {
+        document.getElementById('tab-btn-join').className = "py-2.5 rounded-xl font-bold text-xs bg-amber-500 text-emerald-950 cursor-pointer";
+        document.getElementById('tab-btn-create').className = "py-2.5 rounded-xl font-bold text-xs text-emerald-300 hover:text-white cursor-pointer";
+        document.getElementById('tab-content-join').classList.remove('hidden');
+        document.getElementById('tab-content-create').classList.add('hidden');
+      }
+    };
+
+    window.setPlayerCount = function(count) {
+      gameState.playerCount = count;
+      document.querySelectorAll('.pcount-btn').forEach(btn => {
+        btn.className = "pcount-btn py-3 bg-emerald-800 border-2 border-emerald-600 rounded-2xl text-center font-bold text-sm transition hover:border-yellow-400 cursor-pointer";
+      });
+      document.getElementById(`pcount-${count}`).className = "pcount-btn py-3 bg-amber-500 border-2 border-yellow-300 rounded-2xl text-center font-bold text-sm text-emerald-950 font-black transition cursor-pointer";
+    };
+
+    function createDeck() {
+      const deck = [];
+      animalPairs.forEach(animal => {
+        deck.push({ id: animal.id, pairId: animal.id, name: animal.name, isBanana: false });
+        deck.push({ id: animal.id, pairId: animal.id, name: animal.name, isBanana: false });
+      });
+      deck.push({ id: 'banana_mico', pairId: 'banana_mico', name: 'A BANANA!', isBanana: true });
+      return deck;
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // --- MODO CONTRA IA ---
+    window.startAiGame = function() {
+      gameState.mode = 'ai';
+      gameState.myPlayerId = "0";
+      document.getElementById('mode-badge').textContent = "MODO IA";
+
+      window.hideAllViews();
+      document.getElementById('game-table').classList.remove('hidden');
+
+      gameState.totalDiscardedPairs = 0;
+      gameState.isGameActive = true;
+      gameState.isProcessingTurn = false;
+
+      gameState.players = [
+        { id: "0", name: 'Você', hand: [], matchedPairs: [], isHuman: true, isOut: false, avatar: '👑' }
+      ];
+
+      const botNames = ['Ana_Bot', 'Carlos_Bot', 'Pedro_Bot'];
+      const botAvatars = ['🤖', '🦊', '🦉'];
+
+      for (let i = 1; i < gameState.playerCount; i++) {
+        gameState.players.push({
+          id: String(i),
+          name: botNames[i - 1],
+          hand: [],
+          matchedPairs: [],
+          isHuman: false,
+          isOut: false,
+          avatar: botAvatars[i - 1]
+        });
+      }
+
+      const deck = shuffleArray(createDeck());
+      let pIdx = 0;
+      deck.forEach(card => {
+        gameState.players[pIdx].hand.push(card);
+        pIdx = (pIdx + 1) % gameState.playerCount;
+      });
+
+      gameState.players.forEach(player => discardPairsFromHand(player));
+      gameState.currentTurnIndex = 0;
+
+      renderTable();
+      processTurnState();
+    };
+
+    // --- MODO ONLINE COM CÓDIGO (FIRESTORE + MULTI-TAB / BROADCAST FALLBACK) ---
+    const bananaChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('banana_rooms_channel') : null;
+    window.bananaLocalUid = window.bananaLocalUid || ('usr_' + Math.random().toString(36).substring(2, 9));
+
+    if (bananaChannel) {
+      bananaChannel.onmessage = (e) => {
+        if (e.data && e.data.type === 'ROOM_UPDATE' && gameState.mode === 'online' && gameState.onlineRoomCode === e.data.code) {
+          applyRoomDataUpdate(e.data.code, e.data.roomData);
+        }
+      };
+    }
+
+    function broadcastBananaRoom(code, roomData) {
+      localStorage.setItem('banana_room_' + code, JSON.stringify(roomData));
+      if (bananaChannel) {
+        bananaChannel.postMessage({ type: 'ROOM_UPDATE', code, roomData });
+      }
+    }
+
+    function applyRoomDataUpdate(code, roomData) {
+      if (!roomData) return;
+      if (roomData.status === 'lobby') {
+        const lobbyList = document.getElementById('lobby-players-list');
+        if (lobbyList) {
+          lobbyList.innerHTML = roomData.players.map(p => `
+            <div class="flex items-center justify-between p-2.5 bg-emerald-900/60 rounded-xl border border-emerald-700/60">
+              <span class="font-bold text-sm text-yellow-300 flex items-center gap-2">
+                <span>${p.avatar}</span> ${p.name} ${String(p.id) === String(gameState.myPlayerId) ? '(Você)' : ''}
+              </span>
+              <span class="text-[10px] bg-emerald-950 text-emerald-300 font-extrabold px-2 py-0.5 rounded">CONECTADO</span>
+            </div>
+          `).join('');
+        }
+        const pCount = document.getElementById('lobby-player-count');
+        if (pCount) pCount.textContent = `${roomData.players.length} / 4`;
+      }
+
+      if (roomData.status === 'playing') {
+        document.getElementById('mode-badge').textContent = `SALA #${code}`;
+        gameState.players = roomData.players;
+        gameState.currentTurnIndex = roomData.currentTurnIndex;
+        gameState.totalDiscardedPairs = roomData.totalDiscardedPairs;
+        gameState.isGameActive = true;
+
+        window.hideAllViews();
+        document.getElementById('game-table').classList.remove('hidden');
+        renderTable();
+        processTurnState();
+      }
+    }
+
+    window.createOnlineRoom = async function() {
+      try {
+        let user = null;
+        if (window.fbCtx && window.fbCtx.auth) {
+          try {
+            if (window.fbCtx.authPromise) await window.fbCtx.authPromise;
+            user = window.fbCtx.auth.currentUser;
+          } catch(e) {}
+        }
+        const myUid = user ? user.uid : window.bananaLocalUid;
+
+        const nick = document.getElementById('online-nickname-input').value.trim() || 'Jogador';
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+
+        gameState.mode = 'online';
+        gameState.onlineRoomCode = code;
+        gameState.isHost = true;
+        gameState.myPlayerId = myUid;
+
+        const initialRoom = {
+          code: code,
+          status: 'lobby',
+          hostId: gameState.myPlayerId,
+          players: [{
+            id: gameState.myPlayerId,
+            name: nick,
+            avatar: '👑',
+            hand: [],
+            matchedPairs: [],
+            isOut: false
+          }],
+          currentTurnIndex: 0,
+          totalDiscardedPairs: 0
+        };
+
+        if (window.fbCtx && window.fbCtx.db && user) {
+          try {
+            const roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', code);
+            await window.fbCtx.setDoc(roomRef, initialRoom);
+          } catch(e) {
+            broadcastBananaRoom(code, initialRoom);
+          }
+        } else {
+          broadcastBananaRoom(code, initialRoom);
+        }
+
+        listenToOnlineRoom(code);
+
+        window.hideAllViews();
+        document.getElementById('online-lobby-view').classList.remove('hidden');
+        document.getElementById('lobby-code-display').textContent = code;
+        document.getElementById('host-controls').classList.remove('hidden');
+        document.getElementById('guest-waiting-msg').classList.add('hidden');
+        applyRoomDataUpdate(code, initialRoom);
+      } catch (err) {
+        console.error("Erro ao criar sala:", err);
+        showToast("Não foi possível criar a sala online. Tente novamente.");
+      }
+    };
+
+    window.joinOnlineRoom = async function() {
+      const code = document.getElementById('join-code-input').value.trim();
+      if (code.length !== 4) {
+        showToast("Insira um código válido de 4 dígitos.");
+        return;
+      }
+
+      try {
+        let user = null;
+        if (window.fbCtx && window.fbCtx.auth) {
+          try {
+            if (window.fbCtx.authPromise) await window.fbCtx.authPromise;
+            user = window.fbCtx.auth.currentUser;
+          } catch(e) {}
+        }
+        const myUid = user ? user.uid : window.bananaLocalUid;
+
+        const nick = document.getElementById('online-nickname-input').value.trim() || 'Jogador';
+        gameState.mode = 'online';
+        gameState.onlineRoomCode = code;
+        gameState.isHost = false;
+        gameState.myPlayerId = myUid;
+
+        let roomData = null;
+        let roomRef = null;
+
+        if (window.fbCtx && window.fbCtx.db && user) {
+          try {
+            roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', code);
+            const roomSnap = await window.fbCtx.getDoc(roomRef);
+            if (roomSnap.exists()) roomData = roomSnap.data();
+          } catch(e) {}
+        }
+
+        if (!roomData) {
+          const raw = localStorage.getItem('banana_room_' + code);
+          if (raw) roomData = JSON.parse(raw);
+        }
+
+        if (!roomData) {
+          showToast("Sala não encontrada com esse código (" + code + ").");
+          return;
+        }
+
+        if (roomData.status !== 'lobby') {
+          showToast("A partida desta sala já está em andamento!");
+          return;
+        }
+
+        if (roomData.players.length >= 4) {
+          showToast("A sala já está cheia (máximo 4 jogadores).");
+          return;
+        }
+
+        const avatars = ['🦊', '🦉', '🐻', '🐼'];
+        const existingPlayer = roomData.players.find(p => String(p.id) === String(gameState.myPlayerId));
+        if (!existingPlayer) {
+          roomData.players.push({
+            id: gameState.myPlayerId,
+            name: nick,
+            avatar: avatars[roomData.players.length - 1] || '🎮',
+            hand: [],
+            matchedPairs: [],
+            isOut: false
+          });
+          if (roomRef) {
+            try { await window.fbCtx.updateDoc(roomRef, { players: roomData.players }); } catch(e) {}
+          }
+          broadcastBananaRoom(code, roomData);
+        }
+
+        listenToOnlineRoom(code);
+
+        window.hideAllViews();
+        document.getElementById('online-lobby-view').classList.remove('hidden');
+        document.getElementById('lobby-code-display').textContent = code;
+        document.getElementById('host-controls').classList.add('hidden');
+        document.getElementById('guest-waiting-msg').classList.remove('hidden');
+        applyRoomDataUpdate(code, roomData);
+      } catch (err) {
+        console.error("Erro ao entrar na sala:", err);
+        showToast("Erro ao conectar à sala. Tente novamente.");
+      }
+    };
+
+    function listenToOnlineRoom(code) {
+      let intervalId = setInterval(() => {
+        if (gameState.mode !== 'online' || gameState.onlineRoomCode !== code) {
+          clearInterval(intervalId);
+          return;
+        }
+        const raw = localStorage.getItem('banana_room_' + code);
+        if (raw) {
+          applyRoomDataUpdate(code, JSON.parse(raw));
+        }
+      }, 700);
+
+      gameState.unsubscribeRoom = () => clearInterval(intervalId);
+
+      if (window.fbCtx && window.fbCtx.db) {
+        try {
+          const roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', code);
+          const fbUnsub = window.fbCtx.onSnapshot(roomRef, (snapshot) => {
+            if (!snapshot.exists()) return;
+            const roomData = snapshot.data();
+            broadcastBananaRoom(code, roomData);
+            applyRoomDataUpdate(code, roomData);
+          }, (err) => {
+            console.warn("Snapshot fallback to local:", err);
+          });
+          gameState.unsubscribeRoom = () => {
+            clearInterval(intervalId);
+            if (fbUnsub) fbUnsub();
+          };
+        } catch(e) {}
+      }
+    }
+
+    window.startOnlineGameHost = async function() {
+      if (!gameState.isHost) return;
+      const code = gameState.onlineRoomCode;
+      let roomData = null;
+
+      if (window.fbCtx && window.fbCtx.db) {
+        try {
+          const roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', code);
+          const roomSnap = await window.fbCtx.getDoc(roomRef);
+          if (roomSnap.exists()) roomData = roomSnap.data();
+        } catch(e) {}
+      }
+
+      if (!roomData) {
+        const raw = localStorage.getItem('banana_room_' + code);
+        if (raw) roomData = JSON.parse(raw);
+      }
+
+      if (!roomData) return;
+
+      if (roomData.players.length < 2) {
+        showToast("Aguarde pelo menos mais um amigo entrar para iniciar a partida.");
+        return;
+      }
+
+      const deck = shuffleArray(createDeck());
+      let pIdx = 0;
+      deck.forEach(card => {
+        roomData.players[pIdx].hand.push(card);
+        pIdx = (pIdx + 1) % roomData.players.length;
+      });
+
+      roomData.players.forEach(p => discardPairsFromHand(p));
+      roomData.status = 'playing';
+      roomData.currentTurnIndex = 0;
+
+      if (window.fbCtx && window.fbCtx.db) {
+        try {
+          const roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', code);
+          await window.fbCtx.updateDoc(roomRef, roomData);
+        } catch(e) {}
+      }
+
+      broadcastBananaRoom(code, roomData);
+      applyRoomDataUpdate(code, roomData);
+    };
+
+    window.copyRoomCode = function() {
+      if (gameState.onlineRoomCode) {
+        try {
+          document.execCommand('copy');
+        } catch (e) {}
+        showToast(`Código ${gameState.onlineRoomCode} copiado!`);
+      }
+    };
+
+    function discardPairsFromHand(player) {
+      if (!player) return;
+      if (!player.matchedPairs) player.matchedPairs = [];
+      const counts = {};
+      player.hand.forEach(card => {
+        if (!card.isBanana) counts[card.pairId] = (counts[card.pairId] || 0) + 1;
+      });
+
+      const newHand = [];
+      const pairedIds = new Set();
+
+      player.hand.forEach(card => {
+        if (card.isBanana) {
+          newHand.push(card);
+        } else if (counts[card.pairId] === 2) {
+          if (!pairedIds.has(card.pairId)) {
+            pairedIds.add(card.pairId);
+            gameState.totalDiscardedPairs++;
+            player.matchedPairs.push(card);
+          }
+        } else {
+          newHand.push(card);
+        }
+      });
+
+      player.hand = newHand;
+      checkPlayerOutStatus(player);
+    }
+
+    function checkPlayerOutStatus(player) {
+      if (player && player.hand && player.hand.length === 0 && !player.isOut) {
+        player.isOut = true;
+      }
+    }
+
+    function renderTable() {
+      const oppContainer = document.getElementById('opponents-container');
+      if (!oppContainer) return;
+      oppContainer.innerHTML = '';
+
+      const me = gameState.players.find(p => String(p.id) === String(gameState.myPlayerId)) || gameState.players[0];
+      const opponents = gameState.players.filter(p => String(p.id) !== String(me.id));
+
+      if (opponents.length === 1) oppContainer.className = "w-full max-w-xl mx-auto";
+      else if (opponents.length === 2) oppContainer.className = "grid grid-cols-1 sm:grid-cols-2 gap-4 w-full";
+      else oppContainer.className = "grid grid-cols-1 sm:grid-cols-3 gap-3 w-full";
+
+      opponents.forEach(opp => {
+        const isTarget = isOpponentTarget(opp.id);
+        const currentTurnPlayer = gameState.players[gameState.currentTurnIndex];
+        const isCurrentTurn = currentTurnPlayer && String(currentTurnPlayer.id) === String(opp.id);
+
+        const oppCard = document.createElement('div');
+        oppCard.className = `glass-panel p-4 rounded-3xl flex flex-col justify-between transition border ${
+          isCurrentTurn ? 'active-turn-glow border-yellow-400' : 'border-emerald-700/60'
+        }`;
+
+        let cardsHtml = '';
+        if (opp.isOut) {
+          cardsHtml = `<div class="py-6 text-center"><span class="text-xs font-bold text-amber-300 bg-amber-500/20 px-4 py-2 rounded-full border border-amber-500/40">🏆 SALVO!</span></div>`;
+        } else {
+          const overlapClass = opp.hand.length > 8 ? '-space-x-8 sm:-space-x-10' : (opp.hand.length > 5 ? '-space-x-6 sm:-space-x-8' : '-space-x-4 sm:-space-x-5');
+          
+          cardsHtml = `<div class="flex items-center justify-center ${overlapClass} my-3 py-3 px-2 overflow-x-auto min-h-[110px] sm:min-h-[140px]">`;
+          opp.hand.forEach((card, idx) => {
+            const isMyTurn = currentTurnPlayer && String(currentTurnPlayer.id) === String(me.id);
+            const clickable = isMyTurn && isTarget && !gameState.isProcessingTurn;
+
+            cardsHtml += `
+              <div onclick="window.humanSelectOpponentCard('${opp.id}', ${idx})" class="playing-card-opp card-back ${clickable ? 'cursor-pointer hover:-translate-y-3 ring-2 sm:ring-4 ring-yellow-400 z-10' : 'disabled-card'}" title="Puxar carta">
+                <div class="w-full h-full border border-amber-300/30 rounded-xl flex flex-col items-center justify-center p-1.5">
+                  ${getCardGraphic('banana_mico', 'w-8 h-8 sm:w-11 sm:h-11 opacity-90')}
+                  <span class="text-[9px] sm:text-[10px] font-bold text-amber-200/80 mt-1 uppercase tracking-tighter">BANANA</span>
+                </div>
+              </div>
+            `;
+          });
+          cardsHtml += `</div>`;
+        }
+
+        oppCard.innerHTML = `
+          <div class="flex items-center gap-2 w-full justify-between border-b border-emerald-800/80 pb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">${opp.avatar}</span>
+              <span class="font-bold text-xs sm:text-sm text-slate-100">${opp.name}</span>
+            </div>
+            <span class="text-[10px] font-mono bg-emerald-950 px-2.5 py-1 rounded-full text-yellow-300 font-bold border border-emerald-700">
+              ${opp.hand.length} ${opp.hand.length === 1 ? 'Carta' : 'Cartas'}
+            </span>
+          </div>
+          ${cardsHtml}
+        `;
+
+        oppContainer.appendChild(oppCard);
+      });
+
+      // Mão do Jogador Humano
+      const playerHandElem = document.getElementById('player-hand');
+      if (playerHandElem) {
+        playerHandElem.innerHTML = '';
+        document.getElementById('player-hand-title').textContent = me.name;
+        document.getElementById('player-card-count').textContent = `${me.hand.length} Cartas`;
+
+        if (me.isOut) {
+          document.getElementById('player-status-tag').textContent = "🏆 SALVO!";
+          document.getElementById('player-status-tag').className = "text-xs font-bold text-amber-300 bg-amber-500/20 px-3 py-1 rounded-full border border-amber-500/40";
+          playerHandElem.innerHTML = `<div class="text-amber-300 font-bold text-sm py-4">Você descartou todas as cartas e está salvo! 🎉</div>`;
+        } else {
+          document.getElementById('player-status-tag').textContent = "Jogando";
+          me.hand.forEach(card => {
+            const cardElem = document.createElement('div');
+            cardElem.className = `playing-card card-front ${card.isBanana ? 'card-banana-special' : ''} flex flex-col justify-between p-2`;
+            cardElem.innerHTML = `
+              <div class="flex justify-between items-center w-full text-[10px] font-bold ${card.isBanana ? 'text-amber-900' : 'text-slate-600'}">
+                <span>★</span>
+                <span class="truncate">${card.isBanana ? 'BANANA' : card.name}</span>
+              </div>
+              <div class="my-auto flex justify-center items-center">
+                ${getCardGraphic(card.id)}
+              </div>
+              <div class="text-[9px] font-extrabold uppercase text-center truncate w-full ${card.isBanana ? 'text-red-700' : 'text-emerald-700'}">
+                ${card.isBanana ? 'CARTA PERDIDA' : card.name}
+              </div>
+            `;
+            playerHandElem.appendChild(cardElem);
+          });
+        }
+      }
+
+      // Mesa Central de Pares
+      const centralPairsContainer = document.getElementById('central-pairs-container');
+      if (centralPairsContainer) {
+        centralPairsContainer.innerHTML = '';
+
+        gameState.players.forEach(p => {
+          const playerPairsBox = document.createElement('div');
+          playerPairsBox.className = "bg-emerald-900/40 p-2 rounded-xl border border-emerald-800/60 flex flex-col justify-between";
+
+          let pairsCardsHtml = '';
+          if (p.matchedPairs && p.matchedPairs.length > 0) {
+            pairsCardsHtml = p.matchedPairs.map(pCard => `
+              <div class="mini-pair-card" title="${pCard.name}">
+                ${getCardGraphic(pCard.id, 'w-5 h-5')}
+                <span class="text-[7px] font-bold text-slate-700 truncate w-full text-center mt-0.5">${pCard.name}</span>
+              </div>
+            `).join('');
+          } else {
+            pairsCardsHtml = `<span class="text-[10px] text-emerald-300/50 italic py-1">Sem pares ainda</span>`;
+          }
+
+          playerPairsBox.innerHTML = `
+            <div class="flex items-center justify-between border-b border-emerald-800/60 pb-1 mb-1.5">
+              <span class="text-[11px] font-bold text-yellow-300 flex items-center gap-1">
+                <span>${p.avatar}</span>
+                <span class="truncate">${String(p.id) === String(me.id) ? 'Você' : p.name}</span>
+              </span>
+              <span class="text-[10px] font-extrabold bg-amber-500/20 text-yellow-300 px-1.5 py-0.5 rounded border border-amber-500/30">
+                ${p.matchedPairs ? p.matchedPairs.length : 0} Pares
+              </span>
+            </div>
+            <div class="flex flex-wrap gap-1 items-center min-h-[36px]">
+              ${pairsCardsHtml}
+            </div>
+          `;
+
+          centralPairsContainer.appendChild(playerPairsBox);
+        });
+      }
+
+      const pairsCounter = document.getElementById('discard-pairs-count');
+      if (pairsCounter) pairsCounter.textContent = `${gameState.totalDiscardedPairs} / 12 Pares`;
+    }
+
+    function isOpponentTarget(oppId) {
+      const activePlayers = gameState.players.filter(p => !p.isOut);
+      const current = gameState.players[gameState.currentTurnIndex];
+      if (!current) return false;
+
+      const activeIndex = activePlayers.findIndex(p => String(p.id) === String(current.id));
+      if (activeIndex === -1) return false;
+
+      const targetPlayer = activePlayers[(activeIndex + 1) % activePlayers.length];
+      return String(targetPlayer.id) === String(oppId);
+    }
+
+    function processTurnState() {
+      if (!gameState.isGameActive) return;
+
+      const activePlayers = gameState.players.filter(p => !p.isOut);
+      if (activePlayers.length <= 1) {
+        endGame(activePlayers[0]);
+        return;
+      }
+
+      const currentPlayer = gameState.players[gameState.currentTurnIndex];
+      if (!currentPlayer || currentPlayer.isOut) {
+        advanceTurn();
+        return;
+      }
+
+      const statusText = document.getElementById('turn-status-text');
+      const turnBadge = document.getElementById('turn-indicator-badge');
+
+      if (turnBadge) turnBadge.textContent = currentPlayer.avatar;
+
+      if (String(currentPlayer.id) === String(gameState.myPlayerId)) {
+        if (statusText) statusText.textContent = "Sua Vez! Escolha uma carta do oponente destacado.";
+        gameState.isProcessingTurn = false;
+      } else {
+        if (statusText) statusText.textContent = `Vez de ${currentPlayer.name}...`;
+        if (gameState.mode === 'ai' && !currentPlayer.isHuman) {
+          gameState.isProcessingTurn = true;
+          setTimeout(() => botExecuteTurn(currentPlayer), 1200);
+        } else {
+          gameState.isProcessingTurn = false;
+        }
+      }
+    }
+
+    async function syncOnlineState() {
+      if (gameState.mode !== 'online' || !gameState.onlineRoomCode) return;
+      const roomUpdate = {
+        code: gameState.onlineRoomCode,
+        status: gameState.isGameActive ? 'playing' : 'lobby',
+        players: gameState.players,
+        currentTurnIndex: gameState.currentTurnIndex,
+        totalDiscardedPairs: gameState.totalDiscardedPairs
+      };
+      if (window.fbCtx && window.fbCtx.db) {
+        try {
+          const roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', gameState.onlineRoomCode);
+          await window.fbCtx.updateDoc(roomRef, roomUpdate);
+        } catch (err) {}
+      }
+      broadcastBananaRoom(gameState.onlineRoomCode, roomUpdate);
+    }
+
+    function advanceTurn() {
+      gameState.currentTurnIndex = (gameState.currentTurnIndex + 1) % gameState.players.length;
+      if (gameState.mode === 'online' && gameState.isHost) {
+        syncOnlineState();
+      }
+      processTurnState();
+    }
+
+    window.humanSelectOpponentCard = function(targetOppId, cardIdx) {
+      const me = gameState.players.find(p => String(p.id) === String(gameState.myPlayerId)) || gameState.players[0];
+      const current = gameState.players[gameState.currentTurnIndex];
+
+      if (!current || String(current.id) !== String(me.id) || gameState.isProcessingTurn) return;
+      if (!isOpponentTarget(targetOppId)) return;
+
+      gameState.isProcessingTurn = true;
+      const targetOpp = gameState.players.find(p => String(p.id) === String(targetOppId));
+      if (!targetOpp || !targetOpp.hand || targetOpp.hand.length <= cardIdx) {
+        gameState.isProcessingTurn = false;
+        return;
+      }
+
+      const drawnCard = targetOpp.hand.splice(cardIdx, 1)[0];
+
+      sound.playCardDraw();
+      me.hand.push(drawnCard);
+
+      if (drawnCard.isBanana) sound.playBananaWarning();
+
+      const initialCount = me.hand.length;
+      discardPairsFromHand(me);
+      checkPlayerOutStatus(targetOpp);
+
+      if (me.hand.length < initialCount) sound.playPairMatch();
+
+      renderTable();
+
+      if (gameState.mode === 'online') {
+        syncOnlineState();
+      }
+
+      setTimeout(() => advanceTurn(), 1000);
+    };
+
+    function botExecuteTurn(bot) {
+      if (!gameState.isGameActive) return;
+
+      const activePlayers = gameState.players.filter(p => !p.isOut);
+      const botActiveIndex = activePlayers.findIndex(p => String(p.id) === String(bot.id));
+      if (botActiveIndex === -1) {
+        advanceTurn();
+        return;
+      }
+
+      const targetPlayer = activePlayers[(botActiveIndex + 1) % activePlayers.length];
+
+      if (!targetPlayer || targetPlayer.hand.length === 0) {
+        advanceTurn();
+        return;
+      }
+
+      const randomIdx = Math.floor(Math.random() * targetPlayer.hand.length);
+      const drawnCard = targetPlayer.hand.splice(randomIdx, 1)[0];
+
+      sound.playCardDraw();
+      bot.hand.push(drawnCard);
+
+      const initialCount = bot.hand.length;
+      discardPairsFromHand(bot);
+      checkPlayerOutStatus(targetPlayer);
+
+      if (bot.hand.length < initialCount) sound.playPairMatch();
+
+      renderTable();
+
+      setTimeout(() => advanceTurn(), 1000);
+    }
+
+    function endGame(loser) {
+      gameState.isGameActive = false;
+
+      const goModal = document.getElementById('game-over-modal');
+      const goIcon = document.getElementById('go-icon');
+      const goTitle = document.getElementById('go-title');
+      const goMsg = document.getElementById('go-message');
+      const goLoserName = document.getElementById('go-loser-name');
+
+      goLoserName.textContent = loser ? `${loser.name} ${loser.avatar}` : 'Ninguém';
+
+      const isMeLoser = loser && String(loser.id) === String(gameState.myPlayerId);
+
+      if (isMeLoser) {
+        gameState.losses++;
+        sound.playBananaWarning();
+        goIcon.textContent = "🍌";
+        goTitle.textContent = "VOCÊ PAGOU A BANANA!";
+        goTitle.className = "text-2xl font-black text-red-400";
+        goMsg.textContent = "Que azar! Você ficou com a carta da Banana no final da partida.";
+      } else {
+        gameState.wins++;
+        sound.playVictoryFanfare();
+        triggerConfetti();
+        goIcon.textContent = "🏆";
+        goTitle.textContent = "VITÓRIA! VOCÊ SE SALVOU!";
+        goTitle.className = "text-2xl font-black text-yellow-300";
+        goMsg.textContent = `Parabéns! Você descartou todos os seus pares e ${loser ? loser.name : 'outro jogador'} ficou preso com a Banana.`;
+      }
+
+      document.getElementById('stat-wins').textContent = gameState.wins;
+      document.getElementById('stat-losses').textContent = gameState.losses;
+
+      goModal.classList.remove('hidden');
+    }
+
+    window.toggleRulesModal = function() {
+      document.getElementById('rules-modal').classList.toggle('hidden');
+    };
+
+    document.getElementById('sound-toggle-btn').onclick = () => {
+      sound.enabled = !sound.enabled;
+      document.getElementById('sound-icon').className = sound.enabled ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark";
+    };
+
+    function triggerConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#facc15', '#eab308', '#22c55e', '#3b82f6', '#ec4899'];
+
+      for (let i = 0; i < 120; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          vx: Math.random() * 4 - 2,
+          vy: Math.random() * 4 + 3
+        });
+      }
+
+      function renderConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = false;
+
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.y < canvas.height) active = true;
+
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        if (active) requestAnimationFrame(renderConfetti);
+      }
+
+      renderConfetti();
+    }
+  </script>
+</body>
+</html>
