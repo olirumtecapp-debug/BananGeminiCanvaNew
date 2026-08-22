@@ -182,14 +182,17 @@
       const db = getFirestore(app);
 
       let resolveAuth;
-      const authPromise = new Promise((resolve) => { resolveAuth = resolve; });
+      const authPromise = new Promise((resolve) => {
+        resolveAuth = resolve;
+        setTimeout(() => resolve(auth?.currentUser || null), 200);
+      });
 
       onAuthStateChanged(auth, (user) => {
         if (user) resolveAuth(user);
       });
 
       if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-        signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth));
+        signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth).catch(() => {}));
       } else {
         signInAnonymously(auth).catch(e => console.warn("Anon Auth:", e));
       }
