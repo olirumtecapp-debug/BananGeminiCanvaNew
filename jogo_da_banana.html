@@ -167,41 +167,8 @@
     ::-webkit-scrollbar-thumb { background: #ca8a04; border-radius: 999px; }
   </style>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    try {
-      const appId = typeof __app_id !== 'undefined' ? __app_id : 'jogo-da-banana-app';
-      const defaultConfig = { apiKey: "demo", authDomain: "demo.firebaseapp.com", projectId: "demo-app" };
-      const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : defaultConfig;
-
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
-
-      let resolveAuth;
-      const authPromise = new Promise((resolve) => {
-        resolveAuth = resolve;
-        setTimeout(() => resolve(auth?.currentUser || null), 200);
-      });
-
-      onAuthStateChanged(auth, (user) => {
-        if (user) resolveAuth(user);
-      });
-
-      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-        signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth).catch(() => {}));
-      } else {
-        signInAnonymously(auth).catch(e => console.warn("Anon Auth:", e));
-      }
-
-      window.fbCtx = { appId, auth, db, doc, setDoc, getDoc, updateDoc, onSnapshot, authPromise };
-    } catch (e) {
-      console.warn("Modo offline ativado para Firebase:", e);
-    }
-  </script>
+  <!-- Supabase JS Client for Realtime Multiplayer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="flex flex-col min-h-screen text-slate-100">
 
@@ -870,30 +837,82 @@
       processTurnState();
     };
 
-    // --- MODO ONLINE COM CÓDIGO (FIRESTORE + MULTI-TAB / BROADCAST FALLBACK) ---
-    const bananaChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('banana_rooms_channel') : null;
+    // =========================================================================
+    // 🌐 SISTEMA MULTIPLAYER ONLINE (SUPABASE REALTIME + BANCO DE DADOS + LOCAL)
+    // =========================================================================
+    const SUPABASE_URL = 'https://duklpyvlpsboifxqgxua.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable___VakHTQI7tUQPtPvxJ4ug_GgVUuGwb';
+    let globalSbClient = null;
+    let globalSbChannel = null;
+    let localBananaBroadcast = null;
+    let bananaRoomPollInterval = null;
+
     window.bananaLocalUid = window.bananaLocalUid || ('usr_' + Math.random().toString(36).substring(2, 9));
 
-    if (bananaChannel) {
-      bananaChannel.onmessage = (e) => {
-        if (e.data && e.data.type === 'ROOM_UPDATE' && gameState.mode === 'online' && gameState.onlineRoomCode === e.data.code) {
-          applyRoomDataUpdate(e.data.code, e.data.roomData);
+    async function getOrCreateSupabase() {
+      if (globalSbClient) return globalSbClient;
+      if (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function') {
+        globalSbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+          auth: { persistSession: false }
+        });
+        return globalSbClient;
+      }
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        if (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function') {
+          globalSbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: { persistSession: false }
+          });
+          return globalSbClient;
         }
-      };
+      }
+      return null;
     }
 
-    function broadcastBananaRoom(code, roomData) {
-      localStorage.setItem('banana_room_' + code, JSON.stringify(roomData));
-      if (bananaChannel) {
-        bananaChannel.postMessage({ type: 'ROOM_UPDATE', code, roomData });
+    function emitBananaRoom(event, payload) {
+      if (globalSbChannel) {
+        try {
+          globalSbChannel.send({ type: 'broadcast', event: event, payload: payload });
+        } catch(e) {}
+      }
+      if (localBananaBroadcast) {
+        try {
+          localBananaBroadcast.postMessage({ event: event, payload: payload });
+        } catch(e) {}
+      }
+      const room = payload ? (payload.room || payload) : null;
+      if (room && room.code) {
+        try {
+          localStorage.setItem('banana_room_' + room.code, JSON.stringify(room));
+        } catch(e) {}
+      }
+    }
+
+    function handleIncomingBananaMessage(event, payload, code) {
+      const room = payload ? (payload.room || payload) : null;
+      if (!room) return;
+
+      if (event === 'PLAYER_JOIN') {
+        gameState.onlineRoomData = room;
+        applyRoomDataUpdate(code, room);
+        if (gameState.isHost) {
+          getOrCreateSupabase().then(sb => {
+            if (sb) sb.from('rooms').update({ state: room, status: 'ready' }).eq('code', code);
+          }).catch(() => {});
+        }
+      } else if (event === 'START_GAME' || event === 'ROOM_UPDATE') {
+        gameState.onlineRoomData = room;
+        applyRoomDataUpdate(code, room);
       }
     }
 
     function applyRoomDataUpdate(code, roomData) {
       if (!roomData) return;
+      gameState.onlineRoomData = roomData;
+
       if (roomData.status === 'lobby') {
         const lobbyList = document.getElementById('lobby-players-list');
-        if (lobbyList) {
+        if (lobbyList && roomData.players) {
           lobbyList.innerHTML = roomData.players.map(p => `
             <div class="flex items-center justify-between p-2.5 bg-emerald-900/60 rounded-xl border border-emerald-700/60">
               <span class="font-bold text-sm text-yellow-300 flex items-center gap-2">
@@ -904,14 +923,15 @@
           `).join('');
         }
         const pCount = document.getElementById('lobby-player-count');
-        if (pCount) pCount.textContent = `${roomData.players.length} / 4`;
+        if (pCount && roomData.players) pCount.textContent = `${roomData.players.length} / 4`;
       }
 
       if (roomData.status === 'playing') {
-        document.getElementById('mode-badge').textContent = `SALA #${code}`;
+        const modeBadge = document.getElementById('mode-badge');
+        if (modeBadge) modeBadge.textContent = `SALA #${code}`;
         gameState.players = roomData.players;
         gameState.currentTurnIndex = roomData.currentTurnIndex;
-        gameState.totalDiscardedPairs = roomData.totalDiscardedPairs;
+        gameState.totalDiscardedPairs = roomData.totalDiscardedPairs || 0;
         gameState.isGameActive = true;
 
         window.hideAllViews();
@@ -923,22 +943,13 @@
 
     window.createOnlineRoom = async function() {
       try {
-        let user = null;
-        if (window.fbCtx && window.fbCtx.auth) {
-          try {
-            if (window.fbCtx.authPromise) await window.fbCtx.authPromise;
-            user = window.fbCtx.auth.currentUser;
-          } catch(e) {}
-        }
-        const myUid = user ? user.uid : window.bananaLocalUid;
-
-        const nick = document.getElementById('online-nickname-input').value.trim() || 'Jogador';
+        const nick = document.getElementById('online-nickname-input')?.value.trim() || 'Jogador 1';
         const code = Math.floor(1000 + Math.random() * 9000).toString();
 
         gameState.mode = 'online';
         gameState.onlineRoomCode = code;
         gameState.isHost = true;
-        gameState.myPlayerId = myUid;
+        gameState.myPlayerId = window.bananaLocalUid;
 
         const initialRoom = {
           code: code,
@@ -953,21 +964,76 @@
             isOut: false
           }],
           currentTurnIndex: 0,
-          totalDiscardedPairs: 0
+          totalDiscardedPairs: 0,
+          lastUpdated: Date.now()
         };
 
-        if (window.fbCtx && window.fbCtx.db && user) {
-          try {
-            const roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', code);
-            await window.fbCtx.setDoc(roomRef, initialRoom);
-          } catch(e) {
-            broadcastBananaRoom(code, initialRoom);
-          }
-        } else {
-          broadcastBananaRoom(code, initialRoom);
+        gameState.onlineRoomData = initialRoom;
+        try { localStorage.setItem('banana_room_' + code, JSON.stringify(initialRoom)); } catch(e) {}
+
+        if (bananaRoomPollInterval) clearInterval(bananaRoomPollInterval);
+        if (globalSbChannel) {
+          try { globalSbChannel.unsubscribe(); } catch(e) {}
+          globalSbChannel = null;
+        }
+        if (localBananaBroadcast) {
+          try { localBananaBroadcast.close(); } catch(e) {}
+          localBananaBroadcast = null;
         }
 
-        listenToOnlineRoom(code);
+        if (typeof BroadcastChannel !== 'undefined') {
+          localBananaBroadcast = new BroadcastChannel('banana_bc_' + code);
+          localBananaBroadcast.onmessage = (e) => {
+            if (!e.data) return;
+            handleIncomingBananaMessage(e.data.event, e.data.payload, code);
+          };
+        }
+
+        const sb = await getOrCreateSupabase();
+        if (sb) {
+          try {
+            await sb.from('rooms').upsert({
+              code: code,
+              host_id: gameState.myPlayerId,
+              host_name: nick,
+              status: 'waiting',
+              state: initialRoom
+            });
+          } catch(e) {
+            console.warn('DB upsert error:', e);
+          }
+
+          globalSbClient = sb;
+          globalSbChannel = sb.channel('banana_room_' + code, {
+            config: { broadcast: { self: false } }
+          });
+
+          globalSbChannel
+            .on('broadcast', { event: 'PLAYER_JOIN' }, ({ payload }) => {
+              handleIncomingBananaMessage('PLAYER_JOIN', payload, code);
+            })
+            .on('broadcast', { event: 'ROOM_UPDATE' }, ({ payload }) => {
+              handleIncomingBananaMessage('ROOM_UPDATE', payload, code);
+            })
+            .on('broadcast', { event: 'GAME_ACTION' }, ({ payload }) => {
+              handleIncomingBananaMessage('GAME_ACTION', payload, code);
+            })
+            .subscribe();
+
+          // Host Polling DB
+          bananaRoomPollInterval = setInterval(async () => {
+            if (gameState.onlineRoomCode !== code) {
+              clearInterval(bananaRoomPollInterval);
+              return;
+            }
+            try {
+              const { data } = await sb.from('rooms').select('*').eq('code', code).maybeSingle();
+              if (data && data.state) {
+                applyRoomDataUpdate(code, data.state);
+              }
+            } catch(e) {}
+          }, 1000);
+        }
 
         window.hideAllViews();
         document.getElementById('online-lobby-view').classList.remove('hidden');
@@ -975,6 +1041,7 @@
         document.getElementById('host-controls').classList.remove('hidden');
         document.getElementById('guest-waiting-msg').classList.add('hidden');
         applyRoomDataUpdate(code, initialRoom);
+        showToast(`Sala #${code} criada! Compartilhe o código.`);
       } catch (err) {
         console.error("Erro ao criar sala:", err);
         showToast("Não foi possível criar a sala online. Tente novamente.");
@@ -982,42 +1049,39 @@
     };
 
     window.joinOnlineRoom = async function() {
-      const code = document.getElementById('join-code-input').value.trim();
+      const codeInput = document.getElementById('join-code-input');
+      const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
       if (code.length !== 4) {
         showToast("Insira um código válido de 4 dígitos.");
         return;
       }
 
       try {
-        let user = null;
-        if (window.fbCtx && window.fbCtx.auth) {
-          try {
-            if (window.fbCtx.authPromise) await window.fbCtx.authPromise;
-            user = window.fbCtx.auth.currentUser;
-          } catch(e) {}
-        }
-        const myUid = user ? user.uid : window.bananaLocalUid;
-
-        const nick = document.getElementById('online-nickname-input').value.trim() || 'Jogador';
+        const nick = document.getElementById('online-nickname-input')?.value.trim() || 'Jogador';
         gameState.mode = 'online';
         gameState.onlineRoomCode = code;
         gameState.isHost = false;
-        gameState.myPlayerId = myUid;
+        gameState.myPlayerId = window.bananaLocalUid;
+
+        showToast(`Conectando à sala #${code}...`);
 
         let roomData = null;
-        let roomRef = null;
 
-        if (window.fbCtx && window.fbCtx.db && user) {
+        const sb = await getOrCreateSupabase();
+        if (sb) {
           try {
-            roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', code);
-            const roomSnap = await window.fbCtx.getDoc(roomRef);
-            if (roomSnap.exists()) roomData = roomSnap.data();
+            const { data: dbRoom } = await sb.from('rooms').select('*').eq('code', code).maybeSingle();
+            if (dbRoom && dbRoom.state) {
+              roomData = dbRoom.state;
+            }
           } catch(e) {}
         }
 
         if (!roomData) {
-          const raw = localStorage.getItem('banana_room_' + code);
-          if (raw) roomData = JSON.parse(raw);
+          try {
+            const raw = localStorage.getItem('banana_room_' + code);
+            if (raw) roomData = JSON.parse(raw);
+          } catch(e) {}
         }
 
         if (!roomData) {
@@ -1030,29 +1094,99 @@
           return;
         }
 
-        if (roomData.players.length >= 4) {
+        if (roomData.players && roomData.players.length >= 4) {
           showToast("A sala já está cheia (máximo 4 jogadores).");
           return;
         }
 
-        const avatars = ['🦊', '🦉', '🐻', '🐼'];
+        const avatars = ['🦊', '🦉', '🐻', '🐼', '🐯', '🦁'];
+        if (!roomData.players) roomData.players = [];
         const existingPlayer = roomData.players.find(p => String(p.id) === String(gameState.myPlayerId));
         if (!existingPlayer) {
           roomData.players.push({
             id: gameState.myPlayerId,
             name: nick,
-            avatar: avatars[roomData.players.length - 1] || '🎮',
+            avatar: avatars[roomData.players.length % avatars.length] || '🎮',
             hand: [],
             matchedPairs: [],
             isOut: false
           });
-          if (roomRef) {
-            try { await window.fbCtx.updateDoc(roomRef, { players: roomData.players }); } catch(e) {}
-          }
-          broadcastBananaRoom(code, roomData);
         }
 
-        listenToOnlineRoom(code);
+        gameState.onlineRoomData = roomData;
+        try { localStorage.setItem('banana_room_' + code, JSON.stringify(roomData)); } catch(e) {}
+
+        if (bananaRoomPollInterval) clearInterval(bananaRoomPollInterval);
+        if (globalSbChannel) {
+          try { globalSbChannel.unsubscribe(); } catch(e) {}
+          globalSbChannel = null;
+        }
+        if (localBananaBroadcast) {
+          try { localBananaBroadcast.close(); } catch(e) {}
+          localBananaBroadcast = null;
+        }
+
+        if (typeof BroadcastChannel !== 'undefined') {
+          localBananaBroadcast = new BroadcastChannel('banana_bc_' + code);
+          localBananaBroadcast.onmessage = (e) => {
+            if (!e.data) return;
+            handleIncomingBananaMessage(e.data.event, e.data.payload, code);
+          };
+          localBananaBroadcast.postMessage({
+            event: 'PLAYER_JOIN',
+            payload: { room: roomData }
+          });
+        }
+
+        if (sb) {
+          try {
+            await sb.from('rooms').update({
+              guest_id: gameState.myPlayerId,
+              guest_name: nick,
+              status: 'ready',
+              state: roomData
+            }).eq('code', code);
+          } catch(e) {}
+
+          globalSbClient = sb;
+          globalSbChannel = sb.channel('banana_room_' + code, {
+            config: { broadcast: { self: false } }
+          });
+
+          globalSbChannel
+            .on('broadcast', { event: 'START_GAME' }, ({ payload }) => {
+              handleIncomingBananaMessage('START_GAME', payload, code);
+            })
+            .on('broadcast', { event: 'ROOM_UPDATE' }, ({ payload }) => {
+              handleIncomingBananaMessage('ROOM_UPDATE', payload, code);
+            })
+            .on('broadcast', { event: 'GAME_ACTION' }, ({ payload }) => {
+              handleIncomingBananaMessage('GAME_ACTION', payload, code);
+            })
+            .subscribe((status) => {
+              if (status === 'SUBSCRIBED') {
+                globalSbChannel.send({
+                  type: 'broadcast',
+                  event: 'PLAYER_JOIN',
+                  payload: { room: roomData }
+                });
+              }
+            });
+
+          // Guest Polling DB
+          bananaRoomPollInterval = setInterval(async () => {
+            if (gameState.onlineRoomCode !== code) {
+              clearInterval(bananaRoomPollInterval);
+              return;
+            }
+            try {
+              const { data } = await sb.from('rooms').select('*').eq('code', code).maybeSingle();
+              if (data && data.state) {
+                applyRoomDataUpdate(code, data.state);
+              }
+            } catch(e) {}
+          }, 1000);
+        }
 
         window.hideAllViews();
         document.getElementById('online-lobby-view').classList.remove('hidden');
@@ -1060,97 +1194,83 @@
         document.getElementById('host-controls').classList.add('hidden');
         document.getElementById('guest-waiting-msg').classList.remove('hidden');
         applyRoomDataUpdate(code, roomData);
+        showToast(`Conectado à sala #${code}!`);
       } catch (err) {
         console.error("Erro ao entrar na sala:", err);
         showToast("Erro ao conectar à sala. Tente novamente.");
       }
     };
 
-    function listenToOnlineRoom(code) {
-      let intervalId = setInterval(() => {
-        if (gameState.mode !== 'online' || gameState.onlineRoomCode !== code) {
-          clearInterval(intervalId);
-          return;
-        }
-        const raw = localStorage.getItem('banana_room_' + code);
-        if (raw) {
-          applyRoomDataUpdate(code, JSON.parse(raw));
-        }
-      }, 700);
-
-      gameState.unsubscribeRoom = () => clearInterval(intervalId);
-
-      if (window.fbCtx && window.fbCtx.db) {
-        try {
-          const roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', code);
-          const fbUnsub = window.fbCtx.onSnapshot(roomRef, (snapshot) => {
-            if (!snapshot.exists()) return;
-            const roomData = snapshot.data();
-            broadcastBananaRoom(code, roomData);
-            applyRoomDataUpdate(code, roomData);
-          }, (err) => {
-            console.warn("Snapshot fallback to local:", err);
-          });
-          gameState.unsubscribeRoom = () => {
-            clearInterval(intervalId);
-            if (fbUnsub) fbUnsub();
-          };
-        } catch(e) {}
-      }
-    }
-
     window.startOnlineGameHost = async function() {
       if (!gameState.isHost) return;
       const code = gameState.onlineRoomCode;
-      let roomData = null;
+      let roomData = gameState.onlineRoomData;
 
-      if (window.fbCtx && window.fbCtx.db) {
+      const sb = await getOrCreateSupabase();
+      if (sb) {
         try {
-          const roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', code);
-          const roomSnap = await window.fbCtx.getDoc(roomRef);
-          if (roomSnap.exists()) roomData = roomSnap.data();
+          const { data } = await sb.from('rooms').select('*').eq('code', code).maybeSingle();
+          if (data && data.state) roomData = data.state;
         } catch(e) {}
       }
 
       if (!roomData) {
-        const raw = localStorage.getItem('banana_room_' + code);
-        if (raw) roomData = JSON.parse(raw);
+        try {
+          const raw = localStorage.getItem('banana_room_' + code);
+          if (raw) roomData = JSON.parse(raw);
+        } catch(e) {}
       }
 
       if (!roomData) return;
 
-      if (roomData.players.length < 2) {
+      if (!roomData.players || roomData.players.length < 2) {
         showToast("Aguarde pelo menos mais um amigo entrar para iniciar a partida.");
         return;
       }
 
+      // Embaralha e distribui o baralho
       const deck = shuffleArray(createDeck());
+      roomData.players.forEach(p => {
+        p.hand = [];
+        p.matchedPairs = [];
+        p.isOut = false;
+      });
+
       let pIdx = 0;
       deck.forEach(card => {
         roomData.players[pIdx].hand.push(card);
         pIdx = (pIdx + 1) % roomData.players.length;
       });
 
+      roomData.totalDiscardedPairs = 0;
       roomData.players.forEach(p => discardPairsFromHand(p));
       roomData.status = 'playing';
       roomData.currentTurnIndex = 0;
 
-      if (window.fbCtx && window.fbCtx.db) {
+      gameState.onlineRoomData = roomData;
+      try { localStorage.setItem('banana_room_' + code, JSON.stringify(roomData)); } catch(e) {}
+
+      if (sb) {
         try {
-          const roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', code);
-          await window.fbCtx.updateDoc(roomRef, roomData);
+          await sb.from('rooms').update({
+            status: 'playing',
+            state: roomData
+          }).eq('code', code);
         } catch(e) {}
       }
 
-      broadcastBananaRoom(code, roomData);
+      emitBananaRoom('START_GAME', { room: roomData });
+      emitBananaRoom('ROOM_UPDATE', { room: roomData });
       applyRoomDataUpdate(code, roomData);
     };
 
     window.copyRoomCode = function() {
       if (gameState.onlineRoomCode) {
         try {
-          document.execCommand('copy');
-        } catch (e) {}
+          navigator.clipboard.writeText(gameState.onlineRoomCode);
+        } catch (e) {
+          try { document.execCommand('copy'); } catch(err) {}
+        }
         showToast(`Código ${gameState.onlineRoomCode} copiado!`);
       }
     };
@@ -1376,25 +1496,30 @@
 
     async function syncOnlineState() {
       if (gameState.mode !== 'online' || !gameState.onlineRoomCode) return;
+      const code = gameState.onlineRoomCode;
       const roomUpdate = {
-        code: gameState.onlineRoomCode,
+        code: code,
         status: gameState.isGameActive ? 'playing' : 'lobby',
         players: gameState.players,
         currentTurnIndex: gameState.currentTurnIndex,
-        totalDiscardedPairs: gameState.totalDiscardedPairs
+        totalDiscardedPairs: gameState.totalDiscardedPairs || 0,
+        lastUpdated: Date.now()
       };
-      if (window.fbCtx && window.fbCtx.db) {
+      gameState.onlineRoomData = roomUpdate;
+      try { localStorage.setItem('banana_room_' + code, JSON.stringify(roomUpdate)); } catch(e) {}
+
+      const sb = await getOrCreateSupabase();
+      if (sb) {
         try {
-          const roomRef = window.fbCtx.doc(window.fbCtx.db, 'artifacts', window.fbCtx.appId, 'public', 'data', 'banana_rooms', gameState.onlineRoomCode);
-          await window.fbCtx.updateDoc(roomRef, roomUpdate);
+          await sb.from('rooms').update({ state: roomUpdate }).eq('code', code);
         } catch (err) {}
       }
-      broadcastBananaRoom(gameState.onlineRoomCode, roomUpdate);
+      emitBananaRoom('ROOM_UPDATE', { room: roomUpdate });
     }
 
     function advanceTurn() {
       gameState.currentTurnIndex = (gameState.currentTurnIndex + 1) % gameState.players.length;
-      if (gameState.mode === 'online' && gameState.isHost) {
+      if (gameState.mode === 'online') {
         syncOnlineState();
       }
       processTurnState();
