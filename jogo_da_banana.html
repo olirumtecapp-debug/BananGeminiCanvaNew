@@ -1018,8 +1018,14 @@
             .on('broadcast', { event: 'PLAYER_JOIN' }, ({ payload }) => {
               handleIncomingBananaMessage('PLAYER_JOIN', payload, code);
             })
+            .on('broadcast', { event: 'START_GAME' }, ({ payload }) => {
+              handleIncomingBananaMessage('START_GAME', payload, code);
+            })
             .on('broadcast', { event: 'ROOM_UPDATE' }, ({ payload }) => {
               handleIncomingBananaMessage('ROOM_UPDATE', payload, code);
+            })
+            .on('broadcast', { event: 'REMATCH_REQUEST' }, ({ payload }) => {
+              handleIncomingBananaMessage('REMATCH_REQUEST', payload, code);
             })
             .on('broadcast', { event: 'GAME_ACTION' }, ({ payload }) => {
               handleIncomingBananaMessage('GAME_ACTION', payload, code);
@@ -1165,6 +1171,9 @@
             })
             .on('broadcast', { event: 'ROOM_UPDATE' }, ({ payload }) => {
               handleIncomingBananaMessage('ROOM_UPDATE', payload, code);
+            })
+            .on('broadcast', { event: 'REMATCH_REQUEST' }, ({ payload }) => {
+              handleIncomingBananaMessage('REMATCH_REQUEST', payload, code);
             })
             .on('broadcast', { event: 'GAME_ACTION' }, ({ payload }) => {
               handleIncomingBananaMessage('GAME_ACTION', payload, code);
@@ -1604,7 +1613,9 @@
     function endGame(loser) {
       gameState.isGameActive = false;
 
-      const isMeLoser = loser && String(loser.id) === String(gameState.myPlayerId);
+      const loserObj = (loser && typeof loser === 'object') ? loser : (gameState.players ? gameState.players.find(p => String(p.id) === String(loser)) : null);
+      const isMeLoser = (loserObj && String(loserObj.id) === String(gameState.myPlayerId)) || (loser && String(loser) === String(gameState.myPlayerId));
+
       if (isMeLoser) {
         gameState.losses++;
       } else {
@@ -1621,7 +1632,9 @@
         if (gameState.onlineRoomData) {
           gameState.onlineRoomData.status = 'finished';
           gameState.onlineRoomData.loser = loser;
-          gameState.onlineRoomData.rematch = null;
+          if (typeof gameState.onlineRoomData.rematch === 'undefined') {
+            gameState.onlineRoomData.rematch = null;
+          }
           gameState.onlineRoomData.lastUpdated = Date.now();
           try { localStorage.setItem('banana_room_' + code, JSON.stringify(gameState.onlineRoomData)); } catch(e) {}
           getOrCreateSupabase().then(sb => {
@@ -1643,8 +1656,10 @@
       const rematchContainer = document.getElementById('rematch-action-container');
       if (!goModal) return;
 
-      if (goLoserName) goLoserName.textContent = loser ? `${loser.name} ${loser.avatar}` : 'Ninguém';
-      const isMeLoser = loser && String(loser.id) === String(gameState.myPlayerId);
+      const loserObj = (loser && typeof loser === 'object') ? loser : (gameState.players ? gameState.players.find(p => String(p.id) === String(loser)) : null);
+      const isMeLoser = (loserObj && String(loserObj.id) === String(gameState.myPlayerId)) || (loser && String(loser) === String(gameState.myPlayerId));
+
+      if (goLoserName) goLoserName.textContent = loserObj ? `${loserObj.name} ${loserObj.avatar}` : (loser ? String(loser) : 'Ninguém');
 
       if (isMeLoser) {
         sound.playBananaWarning();
@@ -1662,7 +1677,7 @@
           goTitle.textContent = "VITÓRIA! VOCÊ SE SALVOU!";
           goTitle.className = "text-2xl font-black text-yellow-300";
         }
-        if (goMsg) goMsg.textContent = `Parabéns! Você descartou todos os seus pares e ${loser ? loser.name : 'outro jogador'} ficou com a Banana.`;
+        if (goMsg) goMsg.textContent = `Parabéns! Você descartou todos os seus pares e ${loserObj ? loserObj.name : 'outro jogador'} ficou com a Banana.`;
       }
 
       if (rematchContainer) {
@@ -1733,24 +1748,31 @@
     }
 
     window.requestRematch = async function() {
-      if (gameState.mode !== 'online' || !gameState.onlineRoomCode || !gameState.onlineRoomData) return;
+      if (gameState.mode !== 'online' || !gameState.onlineRoomCode) return;
       const code = gameState.onlineRoomCode;
-      const me = gameState.players.find(p => String(p.id) === String(gameState.myPlayerId)) || { name: 'Jogador' };
+      const me = (gameState.players && gameState.players.find(p => String(p.id) === String(gameState.myPlayerId))) || { name: 'Jogador' };
 
-      gameState.onlineRoomData.rematch = {
+      const rematchData = {
         requestedBy: gameState.myPlayerId,
-        requesterName: me.name
+        requesterName: me.name,
+        timestamp: Date.now()
       };
+
+      if (!gameState.onlineRoomData) gameState.onlineRoomData = {};
+      gameState.onlineRoomData.status = 'finished';
+      gameState.onlineRoomData.rematch = rematchData;
+      gameState.onlineRoomData.lastUpdated = Date.now();
 
       try { localStorage.setItem('banana_room_' + code, JSON.stringify(gameState.onlineRoomData)); } catch(e) {}
 
       const sb = await getOrCreateSupabase();
       if (sb) {
         try {
-          await sb.from('rooms').update({ state: gameState.onlineRoomData }).eq('code', code);
+          await sb.from('rooms').update({ status: 'finished', state: gameState.onlineRoomData }).eq('code', code);
         } catch(e) {}
       }
 
+      emitBananaRoom('REMATCH_REQUEST', { room: gameState.onlineRoomData, rematch: rematchData });
       emitBananaRoom('ROOM_UPDATE', { room: gameState.onlineRoomData });
       renderGameOverModal(gameState.onlineRoomData.loser);
       showToast("Pedido de revanche enviado!");
