@@ -448,7 +448,7 @@
     </div>
   </div>
 
-  <!-- MODAL FIM DE JOGO -->
+  <!-- MODAL FIM DE JOGO COM REVANCHE -->
   <div id="game-over-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-lg flex items-center justify-center p-4 z-50 hidden">
     <div class="glass-modal w-full max-w-md rounded-3xl p-6 text-center border border-yellow-400/50 space-y-5">
       <div id="go-icon" class="text-6xl mx-auto animate-bounce">
@@ -467,9 +467,12 @@
         </div>
       </div>
 
-      <button onclick="window.goToMainMenu()" class="w-full py-4 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-emerald-950 font-black text-lg rounded-2xl shadow-xl border-b-4 border-amber-600 btn-bounce cursor-pointer">
-        <i class="fa-solid fa-house mr-2"></i> VOLTAR AO MENU PRINCIPAL
-      </button>
+      <!-- PAINEL DINÂMICO DE AÇÕES / REVANCHE -->
+      <div id="rematch-action-container" class="space-y-3 pt-2">
+        <button onclick="window.goToMainMenu()" class="w-full py-4 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-emerald-950 font-black text-lg rounded-2xl shadow-xl border-b-4 border-amber-600 btn-bounce cursor-pointer">
+          <i class="fa-solid fa-house mr-2"></i> VOLTAR AO MENU PRINCIPAL
+        </button>
+      </div>
     </div>
   </div>
 
@@ -938,6 +941,9 @@
         document.getElementById('game-table').classList.remove('hidden');
         renderTable();
         processTurnState();
+      } else if (roomData.status === 'finished') {
+        gameState.isGameActive = false;
+        renderGameOverModal(roomData.loser);
       }
     }
 
@@ -1598,38 +1604,221 @@
     function endGame(loser) {
       gameState.isGameActive = false;
 
+      const isMeLoser = loser && String(loser.id) === String(gameState.myPlayerId);
+      if (isMeLoser) {
+        gameState.losses++;
+      } else {
+        gameState.wins++;
+      }
+
+      const statW = document.getElementById('stat-wins');
+      const statL = document.getElementById('stat-losses');
+      if (statW) statW.textContent = gameState.wins;
+      if (statL) statL.textContent = gameState.losses;
+
+      if (gameState.mode === 'online') {
+        const code = gameState.onlineRoomCode;
+        if (gameState.onlineRoomData) {
+          gameState.onlineRoomData.status = 'finished';
+          gameState.onlineRoomData.loser = loser;
+          gameState.onlineRoomData.rematch = null;
+          gameState.onlineRoomData.lastUpdated = Date.now();
+          try { localStorage.setItem('banana_room_' + code, JSON.stringify(gameState.onlineRoomData)); } catch(e) {}
+          getOrCreateSupabase().then(sb => {
+            if (sb) sb.from('rooms').update({ status: 'finished', state: gameState.onlineRoomData }).eq('code', code);
+          }).catch(() => {});
+          emitBananaRoom('ROOM_UPDATE', { room: gameState.onlineRoomData });
+        }
+      }
+
+      renderGameOverModal(loser);
+    }
+
+    function renderGameOverModal(loser) {
       const goModal = document.getElementById('game-over-modal');
       const goIcon = document.getElementById('go-icon');
       const goTitle = document.getElementById('go-title');
       const goMsg = document.getElementById('go-message');
       const goLoserName = document.getElementById('go-loser-name');
+      const rematchContainer = document.getElementById('rematch-action-container');
+      if (!goModal) return;
 
-      goLoserName.textContent = loser ? `${loser.name} ${loser.avatar}` : 'Ninguém';
-
+      if (goLoserName) goLoserName.textContent = loser ? `${loser.name} ${loser.avatar}` : 'Ninguém';
       const isMeLoser = loser && String(loser.id) === String(gameState.myPlayerId);
 
       if (isMeLoser) {
-        gameState.losses++;
         sound.playBananaWarning();
-        goIcon.textContent = "🍌";
-        goTitle.textContent = "VOCÊ PAGOU A BANANA!";
-        goTitle.className = "text-2xl font-black text-red-400";
-        goMsg.textContent = "Que azar! Você ficou com a carta da Banana no final da partida.";
+        if (goIcon) goIcon.textContent = "🍌";
+        if (goTitle) {
+          goTitle.textContent = "VOCÊ PAGOU A BANANA!";
+          goTitle.className = "text-2xl font-black text-red-400";
+        }
+        if (goMsg) goMsg.textContent = "Que azar! Você ficou com a carta da Banana no final da partida.";
       } else {
-        gameState.wins++;
         sound.playVictoryFanfare();
         triggerConfetti();
-        goIcon.textContent = "🏆";
-        goTitle.textContent = "VITÓRIA! VOCÊ SE SALVOU!";
-        goTitle.className = "text-2xl font-black text-yellow-300";
-        goMsg.textContent = `Parabéns! Você descartou todos os seus pares e ${loser ? loser.name : 'outro jogador'} ficou preso com a Banana.`;
+        if (goIcon) goIcon.textContent = "🏆";
+        if (goTitle) {
+          goTitle.textContent = "VITÓRIA! VOCÊ SE SALVOU!";
+          goTitle.className = "text-2xl font-black text-yellow-300";
+        }
+        if (goMsg) goMsg.textContent = `Parabéns! Você descartou todos os seus pares e ${loser ? loser.name : 'outro jogador'} ficou com a Banana.`;
       }
 
-      document.getElementById('stat-wins').textContent = gameState.wins;
-      document.getElementById('stat-losses').textContent = gameState.losses;
+      if (rematchContainer) {
+        if (gameState.mode === 'ai') {
+          rematchContainer.innerHTML = `
+            <button onclick="window.startAiGame()" class="w-full py-3.5 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-emerald-950 font-black text-base rounded-2xl shadow-xl border-b-4 border-amber-600 btn-bounce cursor-pointer">
+              <i class="fa-solid fa-rotate-right mr-2"></i> JOGAR NOVAMENTE
+            </button>
+            <button onclick="window.goToMainMenu()" class="w-full py-3 bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 hover:text-white font-bold text-sm rounded-xl border border-emerald-700/60 btn-bounce cursor-pointer">
+              <i class="fa-solid fa-house mr-2"></i> VOLTAR AO MENU PRINCIPAL
+            </button>
+          `;
+        } else {
+          // Modo Online
+          const rematch = gameState.onlineRoomData ? gameState.onlineRoomData.rematch : null;
+
+          if (!rematch) {
+            // Ninguém pediu revanche ainda
+            rematchContainer.innerHTML = `
+              <button onclick="window.requestRematch()" class="w-full py-3.5 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-emerald-950 font-black text-base rounded-2xl shadow-xl border-b-4 border-amber-600 btn-bounce cursor-pointer">
+                <i class="fa-solid fa-rotate-right mr-2"></i> PEDIR REVANCHE
+              </button>
+              <button onclick="window.goToMainMenu()" class="w-full py-3 bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 hover:text-white font-bold text-sm rounded-xl border border-emerald-700/60 btn-bounce cursor-pointer">
+                <i class="fa-solid fa-house mr-2"></i> VOLTAR AO MENU
+              </button>
+            `;
+          } else if (rematch.declined) {
+            // Revanche recusada
+            rematchContainer.innerHTML = `
+              <div class="p-3 bg-red-950/80 border border-red-500/40 rounded-xl text-red-300 text-xs font-bold flex items-center justify-center gap-2">
+                <i class="fa-solid fa-circle-xmark text-red-400"></i> A revanche foi recusada.
+              </div>
+              <button onclick="window.goToMainMenu()" class="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-emerald-950 font-black text-sm rounded-2xl shadow-xl border-b-4 border-amber-600 btn-bounce cursor-pointer">
+                <i class="fa-solid fa-house mr-2"></i> VOLTAR AO MENU
+              </button>
+            `;
+          } else if (String(rematch.requestedBy) === String(gameState.myPlayerId)) {
+            // Eu solicitei a revanche
+            rematchContainer.innerHTML = `
+              <div class="p-3.5 bg-amber-950/80 border border-amber-500/50 rounded-xl text-amber-200 text-xs font-bold flex items-center justify-center gap-2 animate-pulse">
+                <i class="fa-solid fa-spinner fa-spin text-yellow-400 text-sm"></i> Aguardando o oponente responder...
+              </div>
+              <button onclick="window.goToMainMenu()" class="w-full py-2.5 bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 hover:text-white font-bold text-xs rounded-xl border border-emerald-700/60 btn-bounce cursor-pointer">
+                <i class="fa-solid fa-house mr-1"></i> Cancelar e Sair
+              </button>
+            `;
+          } else {
+            // Oponente solicitou revanche para mim
+            const reqName = rematch.requesterName || 'Seu oponente';
+            rematchContainer.innerHTML = `
+              <div class="p-3 bg-amber-500/20 border border-amber-400/50 rounded-xl text-yellow-300 text-xs font-bold flex items-center justify-center gap-2">
+                <i class="fa-solid fa-bell text-amber-400 text-sm"></i> ${reqName} quer uma revanche!
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="window.acceptRematch()" class="py-3 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-sm rounded-xl shadow-lg border-b-4 border-emerald-700 btn-bounce cursor-pointer flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-check"></i> ACEITAR
+                </button>
+                <button onclick="window.declineRematch()" class="py-3 bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-sm rounded-xl border border-rose-500/60 btn-bounce cursor-pointer flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-xmark"></i> RECUSAR
+                </button>
+              </div>
+            `;
+          }
+        }
+      }
 
       goModal.classList.remove('hidden');
     }
+
+    window.requestRematch = async function() {
+      if (gameState.mode !== 'online' || !gameState.onlineRoomCode || !gameState.onlineRoomData) return;
+      const code = gameState.onlineRoomCode;
+      const me = gameState.players.find(p => String(p.id) === String(gameState.myPlayerId)) || { name: 'Jogador' };
+
+      gameState.onlineRoomData.rematch = {
+        requestedBy: gameState.myPlayerId,
+        requesterName: me.name
+      };
+
+      try { localStorage.setItem('banana_room_' + code, JSON.stringify(gameState.onlineRoomData)); } catch(e) {}
+
+      const sb = await getOrCreateSupabase();
+      if (sb) {
+        try {
+          await sb.from('rooms').update({ state: gameState.onlineRoomData }).eq('code', code);
+        } catch(e) {}
+      }
+
+      emitBananaRoom('ROOM_UPDATE', { room: gameState.onlineRoomData });
+      renderGameOverModal(gameState.onlineRoomData.loser);
+      showToast("Pedido de revanche enviado!");
+    };
+
+    window.acceptRematch = async function() {
+      if (gameState.mode !== 'online' || !gameState.onlineRoomCode || !gameState.onlineRoomData) return;
+      const code = gameState.onlineRoomCode;
+      const roomData = gameState.onlineRoomData;
+
+      // Cria novo baralho e distribui
+      const deck = shuffleArray(createDeck());
+      roomData.players.forEach(p => {
+        p.hand = [];
+        p.matchedPairs = [];
+        p.isOut = false;
+      });
+
+      let pIdx = 0;
+      deck.forEach(card => {
+        roomData.players[pIdx].hand.push(card);
+        pIdx = (pIdx + 1) % roomData.players.length;
+      });
+
+      roomData.totalDiscardedPairs = 0;
+      roomData.players.forEach(p => discardPairsFromHand(p));
+      roomData.status = 'playing';
+      roomData.loser = null;
+      roomData.rematch = null;
+      roomData.currentTurnIndex = 0;
+      roomData.lastUpdated = Date.now();
+
+      gameState.onlineRoomData = roomData;
+      try { localStorage.setItem('banana_room_' + code, JSON.stringify(roomData)); } catch(e) {}
+
+      const sb = await getOrCreateSupabase();
+      if (sb) {
+        try {
+          await sb.from('rooms').update({ status: 'playing', state: roomData }).eq('code', code);
+        } catch(e) {}
+      }
+
+      emitBananaRoom('START_GAME', { room: roomData });
+      emitBananaRoom('ROOM_UPDATE', { room: roomData });
+      applyRoomDataUpdate(code, roomData);
+      showToast("Revanche iniciada!");
+    };
+
+    window.declineRematch = async function() {
+      if (gameState.mode !== 'online' || !gameState.onlineRoomCode || !gameState.onlineRoomData) return;
+      const code = gameState.onlineRoomCode;
+
+      gameState.onlineRoomData.rematch = {
+        declined: true
+      };
+
+      try { localStorage.setItem('banana_room_' + code, JSON.stringify(gameState.onlineRoomData)); } catch(e) {}
+
+      const sb = await getOrCreateSupabase();
+      if (sb) {
+        try {
+          await sb.from('rooms').update({ state: gameState.onlineRoomData }).eq('code', code);
+        } catch(e) {}
+      }
+
+      emitBananaRoom('ROOM_UPDATE', { room: gameState.onlineRoomData });
+      renderGameOverModal(gameState.onlineRoomData.loser);
+    };
 
     window.toggleRulesModal = function() {
       document.getElementById('rules-modal').classList.toggle('hidden');
