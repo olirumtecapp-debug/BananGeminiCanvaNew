@@ -346,6 +346,19 @@
       border-color: #431407;
     }
 
+
+    /* ANIMAÇÃO DE EMBARALHAMENTO DAS CARTAS */
+    .shuffling-cards {
+      animation: card-shuffle-shake 0.4s ease-in-out;
+    }
+    @keyframes card-shuffle-shake {
+      0% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.05) rotate(-3deg) translateY(-4px); }
+      50% { transform: scale(0.96) rotate(3deg) translateY(2px); }
+      75% { transform: scale(1.03) rotate(-1deg) translateY(-2px); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+
 </style>
 
   <!-- Supabase JS Client for Realtime Multiplayer -->
@@ -771,6 +784,16 @@
           osc.start();
           osc.stop(this.audioCtx.currentTime + duration);
         } catch (e) {}
+      }
+
+      playCardShuffle() {
+        if (!this.enabled) return;
+        for (let i = 0; i < 6; i++) {
+          setTimeout(() => {
+            const freq = 220 + Math.random() * 280;
+            this.playTone(freq, 'sine', 0.04, 0.07);
+          }, i * 40);
+        }
       }
 
       playCardDraw() {
@@ -1641,9 +1664,17 @@
       emitBananaRoom('ROOM_UPDATE', { room: roomUpdate });
     }
 
-    function advanceTurn() {
+        function advanceTurn() {
       if (!gameState.isGameActive) return;
       gameState.currentTurnIndex = (gameState.currentTurnIndex + 1) % gameState.players.length;
+      
+      // Embaralhar as mãos de todos os jogadores ativos para que a posição do Mico / Banana nunca fique fixa
+      gameState.players.forEach(p => {
+        if (!p.isOut && p.hand && p.hand.length > 1) {
+          shuffleArray(p.hand);
+        }
+      });
+
       if (gameState.mode === 'online') {
         syncOnlineState();
       }
@@ -1677,6 +1708,16 @@
 
       if (me.hand.length < initialCount) sound.playPairMatch();
 
+      // Embaralha a mão do jogador para esconder onde a nova carta ficou
+      if (me.hand.length > 1) {
+        shuffleArray(me.hand);
+      }
+      // Embaralha as cartas restantes do oponente
+      if (targetOpp.hand.length > 1) {
+        shuffleArray(targetOpp.hand);
+        sound.playCardShuffle();
+      }
+
       renderTable();
 
       if (gameState.mode === 'online') {
@@ -1706,8 +1747,16 @@
 
       if (turnBadge) turnBadge.textContent = currentPlayer.avatar;
 
+      // Se estamos nas rodadas finais (poucas cartas em jogo ou 1v1), avisar e animar
+      const totalCardsInPlay = activePlayers.reduce((acc, p) => acc + (p.hand ? p.hand.length : 0), 0);
+      const isEndgame = totalCardsInPlay <= 5 || activePlayers.length === 2;
+
       if (String(currentPlayer.id) === String(gameState.myPlayerId)) {
-        if (statusText) statusText.textContent = "Sua Vez! Escolha uma carta do oponente destacado.";
+        if (statusText) {
+          statusText.textContent = isEndgame 
+            ? "🔥 RODADA FINAL! Cartas embaralhadas! Escolha com cuidado!" 
+            : "Sua Vez! Escolha uma carta do oponente destacado.";
+        }
         gameState.isProcessingTurn = false;
         renderTable();
       } else {
@@ -1739,6 +1788,11 @@
         return;
       }
 
+      // Embaralhar antes do bot escolher para ser 100% imprevisível
+      if (targetPlayer.hand.length > 1) {
+        shuffleArray(targetPlayer.hand);
+      }
+
       const randomIdx = Math.floor(Math.random() * targetPlayer.hand.length);
       const drawnCard = targetPlayer.hand.splice(randomIdx, 1)[0];
 
@@ -1750,6 +1804,10 @@
       checkPlayerOutStatus(targetPlayer);
 
       if (bot.hand.length < initialCount) sound.playPairMatch();
+
+      if (bot.hand.length > 1) {
+        shuffleArray(bot.hand);
+      }
 
       renderTable();
 
