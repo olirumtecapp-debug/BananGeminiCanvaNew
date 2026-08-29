@@ -384,6 +384,99 @@
       animation: card-shuffle-right 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
     }
 
+
+    /* SELEÇÃO DE PERSONAGENS */
+    .char-select-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 6px;
+      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .char-select-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px) scale(1.04);
+    }
+    .char-select-btn.selected {
+      background: #facc15;
+      border-color: #000000;
+      box-shadow: 0 0 16px #facc15, 0 4px 8px rgba(0, 0, 0, 0.4);
+      transform: scale(1.06);
+    }
+    .char-select-btn.selected span.char-name {
+      color: #000000 !important;
+      font-weight: 900 !important;
+    }
+
+    .char-avatar-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      background: #ffffff;
+      border: 2.5px solid #000000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+
+    /* BALÕES DE DIÁLOGO DINÂMICOS (SPEECH BUBBLES) */
+    .speech-bubble {
+      position: absolute;
+      background: #ffffff;
+      color: #1a1a1a;
+      padding: 6px 12px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 900;
+      border: 2px solid #000000;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+      z-index: 60;
+      pointer-events: none;
+      white-space: nowrap;
+      animation: speech-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      opacity: 0;
+      transform: scale(0.7) translateY(8px);
+    }
+    .speech-bubble.show {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -7px;
+      left: 20px;
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 7px solid #000000;
+    }
+    .speech-bubble::before {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 21px;
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #ffffff;
+      z-index: 1;
+    }
+    @keyframes speech-pop {
+      0% { opacity: 0; transform: scale(0.6) translateY(10px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
 </style>
 
   <!-- Supabase JS Client for Realtime Multiplayer -->
@@ -480,33 +573,42 @@
       </div>
     </section>
 
-    <!-- SETUP CONTRA IA -->
-    <section id="ai-setup-view" class="w-full max-w-md my-auto glass-panel p-6 rounded-3xl text-center space-y-6 border border-yellow-500/30 hidden">
-      <div class="flex items-center justify-between border-b border-emerald-800/80 pb-3">
-        <button onclick="window.showMainMenu()" class="text-xs text-yellow-300 hover:underline flex items-center gap-1 cursor-pointer">
+        <!-- SETUP CONTRA IA (ESCOLHA SEU PERSONAGEM & OPONENTES) -->
+    <section id="ai-setup-view" class="w-full max-w-xl my-auto glass-panel p-5 sm:p-6 rounded-3xl text-center space-y-4 border border-yellow-500/30 hidden">
+      <div class="flex items-center justify-between border-b border-emerald-800/80 pb-2">
+        <button onclick="window.showMainMenu()" class="text-xs text-yellow-300 hover:underline flex items-center gap-1 cursor-pointer font-bold">
           <i class="fa-solid fa-arrow-left"></i> Voltar
         </button>
-        <h3 class="text-lg font-bold text-yellow-300">Modo Contra IA 🤖</h3>
+        <h3 class="text-base sm:text-lg font-black text-yellow-300 uppercase tracking-wide">MODO VS IA 🍌</h3>
         <div></div>
       </div>
 
-      <div class="space-y-3 text-left">
-        <label class="text-xs font-bold text-yellow-200 uppercase tracking-wider block">Número de Jogadores na Mesa:</label>
-        <div class="grid grid-cols-3 gap-3">
-          <button onclick="window.setPlayerCount(2)" id="pcount-2" class="pcount-btn py-3 bg-emerald-800 border-2 border-emerald-600 rounded-2xl text-center font-bold text-sm transition hover:border-yellow-400 cursor-pointer">
-            2 Jogadores
+      <!-- ESCOLHA SEU PERSONAGEM -->
+      <div class="bg-emerald-950/70 p-3 sm:p-4 rounded-2xl border border-emerald-700/60 space-y-2.5">
+        <span class="text-xs font-black text-yellow-300 uppercase tracking-wider block text-center">
+          ✨ ESCOLHA SEU PERSONAGEM ✨
+        </span>
+        <div id="character-selection-grid" class="grid grid-cols-5 gap-2 sm:gap-2.5"></div>
+      </div>
+
+      <!-- QUANTOS OPONENTES -->
+      <div class="space-y-2 text-left">
+        <label class="text-xs font-bold text-yellow-200 uppercase tracking-wider block text-center">Quantos oponentes?</label>
+        <div class="grid grid-cols-3 gap-2.5">
+          <button onclick="window.setPlayerCount(2)" id="pcount-2" class="pcount-btn py-2.5 bg-amber-500 border-2 border-yellow-300 rounded-2xl text-center text-xs text-emerald-950 font-black transition cursor-pointer">
+            👤 1 Oponente
           </button>
-          <button onclick="window.setPlayerCount(3)" id="pcount-3" class="pcount-btn py-3 bg-amber-500 border-2 border-yellow-300 rounded-2xl text-center font-bold text-sm text-emerald-950 font-black transition cursor-pointer">
-            3 Jogadores
+          <button onclick="window.setPlayerCount(3)" id="pcount-3" class="pcount-btn py-2.5 bg-emerald-800 border-2 border-emerald-600 rounded-2xl text-center text-xs font-bold transition hover:border-yellow-400 cursor-pointer">
+            👥 2 Oponentes
           </button>
-          <button onclick="window.setPlayerCount(4)" id="pcount-4" class="pcount-btn py-3 bg-emerald-800 border-2 border-emerald-600 rounded-2xl text-center font-bold text-sm transition hover:border-yellow-400 cursor-pointer">
-            4 Jogadores
+          <button onclick="window.setPlayerCount(4)" id="pcount-4" class="pcount-btn py-2.5 bg-emerald-800 border-2 border-emerald-600 rounded-2xl text-center text-xs font-bold transition hover:border-yellow-400 cursor-pointer">
+            👥 3 Oponentes
           </button>
         </div>
       </div>
 
-      <button onclick="window.startAiGame()" class="w-full py-4 bg-yellow-400 hover:bg-yellow-300 text-black font-black text-lg rounded-2xl border-4 border-black shadow-[5px_5px_0_0_#000000] btn-bounce cursor-pointer">
-        <i class="fa-solid fa-play mr-2"></i> INICIAR PARTIDA
+      <button onclick="window.startAiGame()" class="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-black text-base rounded-2xl border-3 border-black shadow-[4px_4px_0_0_#000000] btn-bounce cursor-pointer">
+        <i class="fa-solid fa-play mr-1.5"></i> INICIAR PARTIDA
       </button>
     </section>
 
@@ -590,8 +692,10 @@
                 <!-- ÁREA DA MESA DE JOGO (BANDEJA SUPERIOR DO OPONENTE + PARES NO MEIO + BANDEJA DA SUA MÃO) -->
     <section id="game-table" class="w-full h-full flex-1 flex flex-col justify-between items-center hidden gap-2.5 py-1 max-w-4xl mx-auto px-2">
 
-      <!-- 1. BANDEJA DE MADEIRA DO ADVERSÁRIO (EM CIMA - MESMO PADRÃO DA SUA MÃO) -->
-      <div id="opp-tray-wrapper" class="w-full wood-tray-3d p-1 sm:p-1.5">
+            <!-- 1. BANDEJA DE MADEIRA DO ADVERSÁRIO (EM CIMA - MESMO PADRÃO DA SUA MÃO) -->
+      <div id="opp-tray-wrapper" class="w-full wood-tray-3d p-1 sm:p-1.5 relative">
+        <!-- Balão de Fala do Oponente -->
+        <div id="opp-speech-bubble" class="speech-bubble hidden top-[-26px] left-[40px]"></div>
         <div class="brass-bracket-tl"></div>
         <div class="brass-bracket-tr"></div>
         <div class="brass-bracket-bl"></div>
@@ -647,8 +751,10 @@
         </div>
       </div>
 
-      <!-- 3. BANDEJA DE MADEIRA DA SUA MÃO (EMBAIXO - MESMO PADRÃO DA SUPERIOR) -->
-      <div class="w-full wood-tray-3d p-1 sm:p-1.5">
+            <!-- 3. BANDEJA DE MADEIRA DA SUA MÃO (EMBAIXO - MESMO PADRÃO DA SUPERIOR) -->
+      <div class="w-full wood-tray-3d p-1 sm:p-1.5 relative">
+        <!-- Balão de Fala do Jogador -->
+        <div id="player-speech-bubble" class="speech-bubble hidden top-[-26px] left-[40px]"></div>
         <div class="brass-bracket-tl"></div>
         <div class="brass-bracket-tr"></div>
         <div class="brass-bracket-bl"></div>
@@ -847,6 +953,177 @@
       }
     }
 
+    
+    // 🎭 ROSTER DE PERSONAGENS COM PERSONALIDADES E DIÁLOGOS
+    const CHARACTERS_ROSTER = [
+      {
+        id: 'vovo',
+        name: 'Vovó',
+        avatar: '👵',
+        lines: {
+          start: ["Toma um cafezinho enquanto eu venço!", "Na minha época não tinha essa banana!", "Vovó tá atenta, meu bem!"],
+          pair: ["Mais um parzinho pra coleção da vovó!", "Ponto pra experiência!", "Facinho como fazer bolo!"],
+          drawBanana: ["Eita, que banana danada!", "Essa banana veio azeda!", "Vovó não quer essa banana não!"],
+          passBanana: ["Leva essa banana pro seu lanche!", "Vovó se livrou do perigo!", "Ufa, toma que é sua!"],
+          endgame: ["Só falta uma carta pra vovó ganhar!", "Cuidado que a vovó tá ligeira!", "Quem vai ficar com o mico?"]
+        }
+      },
+      {
+        id: 'dj',
+        name: 'DJ',
+        avatar: '🎧',
+        lines: {
+          start: ["Solta a batida e passa a carta!", "Esse jogo vai ser no meu compasso!", "Toca o som da vitória!"],
+          pair: ["Par no ritmo certo! Dropou!", "Esse combo foi mixado!", "Mais um hit pro meu set!"],
+          drawBanana: ["Essa banana desafinou meu set!", "Ops, caiu um remix perigoso!", "Que ritmo tenso..."],
+          passBanana: ["Passa o som pra lá!", "Descarreguei a banana na pista!", "Esse beat agora é seu!"],
+          endgame: ["Última track do show! Tô quase lá!", "Drop final! Quem segura?", "No ritmo do campeão!"]
+        }
+      },
+      {
+        id: 'detetive',
+        name: 'Detetive',
+        avatar: '🕵️',
+        lines: {
+          start: ["Elementar, meu caro!", "Estou analisando cada blefe...", "Pelas minhas pistas, já sei sua jogada!"],
+          pair: ["Caso resolvido: par perfeito!", "As pistas me levaram ao par!", "Evidência incontestável!"],
+          drawBanana: ["Uma banana suspeita entrou em cena...", "Isso não estava no relatório!", "Reviravolta na investigação!"],
+          passBanana: ["Passei a prova do crime!", "Suspeito desarmado!", "O caso agora está com você!"],
+          endgame: ["Falta apenas uma peça no quebra-cabeça!", "O mistério está no fim!", "Xeque-mate investigativo!"]
+        }
+      },
+      {
+        id: 'chef',
+        name: 'Chef',
+        avatar: '👩‍🍳',
+        lines: {
+          start: ["Preparando a receita da vitória!", "Esse jogo tá saindo do forno!", "Menu de hoje: você perder!"],
+          pair: ["Receita de par perfeita!", "Um par no ponto certo!", "Mais um prato premiado!"],
+          drawBanana: ["Essa banana tá verde demais!", "Ingrediente perigoso na cozinha!", "Socorro, quase queimou!"],
+          passBanana: ["Banana flambada entregue com sucesso!", "Deguste esse prato aí!", "Entrega expressa!"],
+          endgame: ["Falta só a cereja do bolo!", "Sobremesa garantida!", "Último prato do banquete!"]
+        }
+      },
+      {
+        id: 'piloto',
+        name: 'Piloto',
+        avatar: '👩‍✈️',
+        lines: {
+          start: ["Apertem os cintos, vamos decolar!", "Voando alto rumo à vitória!", "Condições perfeitas para vencer!"],
+          pair: ["Pouso perfeito com esse par!", "Alcançando altitude máxima!", "Manobra de mestre!"],
+          drawBanana: ["Turbulência à vista!", "Alerta de pane: banana a bordo!", "Manobra evasiva necessária!"],
+          passBanana: ["Carga de banana ejetada!", "Passei a turbulência pra você!", "Voo estabilizado!"],
+          endgame: ["Aproximando da pista de pouso!", "Última milha de voo!", "Destino: vitória!"]
+        }
+      },
+      {
+        id: 'pirata',
+        name: 'Pirata',
+        avatar: '🏴‍☠️',
+        lines: {
+          start: ["Arrr! Entregue seu tesouro!", "Quem ficar com o mico anda na prancha!", "Zarpando para saquear as cartas!"],
+          pair: ["Um baú de ouro com esse par!", "Tesouro resgatado, marujo!", "Arrr, esse par é meu!"],
+          drawBanana: ["Pelos trovões, que maldição é essa?!", "Uma banana no meu navio?!", "Tempestade no convés!"],
+          passBanana: ["Toma essa maldição de volta, marujo!", "Joguei a banana no mar!", "Arrr, livre do perigo!"],
+          endgame: ["Só mais uma moeda de ouro!", "Terra à vista! Vou vencer!", "O tesouro final é meu!"]
+        }
+      },
+      {
+        id: 'cientista',
+        name: 'Cientista',
+        avatar: '👩‍🔬',
+        lines: {
+          start: ["Calculando probabilidade da vitória...", "Hipótese: você vai perder!", "Experimento iniciado!"],
+          pair: ["Fusão molecular de pares bem-sucedida!", "Estatisticamente brilhante!", "Teoria comprovada!"],
+          drawBanana: ["Anomalia detectada: radiação de banana!", "Variável imprevista no experimento!", "Instabilidade quântica!"],
+          passBanana: ["Reação transferida para o seu lado!", "Equilíbrio termodinâmico restaurado!", "Absorva essa anomalia!"],
+          endgame: ["Cálculo final: 99% de chance de vencer!", "Conclusão do estudo iminente!", "Fórmula quase completa!"]
+        }
+      },
+      {
+        id: 'skatista',
+        name: 'Skatista',
+        avatar: '🛹',
+        lines: {
+          start: ["Manda a manobra que eu tô pronto!", "Na pista pra vencer!", "Relaxa que o rolê tá suave!"],
+          pair: ["Mandei um kickflip e fiz o par!", "Manobra insana!", "Caiu na base perfeitamente!"],
+          drawBanana: ["Pisei na banana e quase caí!", "Opa, perigo na pista!", "Desequilíbrio momentâneo!"],
+          passBanana: ["Passei o obstáculo pra você!", "Dropa essa banana aí!", "Mandei de volta pro asfalto!"],
+          endgame: ["Último combo da linha!", "Quase acertando o 900!", "Vitória na pista!"]
+        }
+      },
+      {
+        id: 'diva',
+        name: 'Diva',
+        avatar: '💃',
+        lines: {
+          start: ["Brilho e glamour nessa mesa!", "O palco é meu, queridos!", "Pronta para arrasar!"],
+          pair: ["Um escândalo de par!", "Aplausos para essa jogada!", "Puro talento e elegância!"],
+          drawBanana: ["Ai que horror, uma banana cafona!", "Não combina com meu vestido!", "Um pesadelo de estilo!"],
+          passBanana: ["Despachei essa banana pra longe!", "Toma que não é do meu padrão!", "Meu glamour está salvo!"],
+          endgame: ["O gran finale tá chegando!", "Preparem os holofotes!", "Aplausos para a campeã!"]
+        }
+      },
+      {
+        id: 'robo',
+        name: 'Robô',
+        avatar: '🤖',
+        lines: {
+          start: ["Iniciando protocolo de jogo...", "Algoritmo de vitória carregado.", "Processando seus padrões de blefe."],
+          pair: ["Par identificado e consolidado com sucesso.", "Otimização de dados: +1 Par.", "Eficiência máxima alcançada."],
+          drawBanana: ["Alerta! Objeto orgânico instável: BANANA.", "Erro térmico! Risco de curto-circuito.", "Aviso de alta prioridade!"],
+          passBanana: ["Banana reencaminhada para endereço IP adversário.", "Vírus neutralizado e transmitido.", "Segurança do sistema restabelecida."],
+          endgame: ["Execução final: 1 ciclo restante.", "Rotina de encerramento ativada.", "Processamento: 99% concluído."]
+        }
+      }
+    ];
+
+    let selectedPlayerCharId = 'dj';
+
+    function initCharacterSelectionUI() {
+      const grid = document.getElementById('character-selection-grid');
+      if (!grid) return;
+      grid.innerHTML = CHARACTERS_ROSTER.map(c => `
+        <div 
+          onclick="window.selectPlayerCharacter('${c.id}')" 
+          id="char-btn-${c.id}" 
+          class="char-select-btn ${c.id === selectedPlayerCharId ? 'selected' : ''}"
+        >
+          <div class="char-avatar-circle">${c.avatar}</div>
+          <span class="char-name text-[10px] font-black text-yellow-300 uppercase tracking-tighter truncate w-full text-center">
+            ${c.name}
+          </span>
+        </div>
+      `).join('');
+    }
+
+    window.selectPlayerCharacter = function(charId) {
+      selectedPlayerCharId = charId;
+      document.querySelectorAll('.char-select-btn').forEach(btn => btn.classList.remove('selected'));
+      const activeBtn = document.getElementById(`char-btn-${charId}`);
+      if (activeBtn) activeBtn.classList.add('selected');
+    };
+
+    function triggerSpeechBubble(targetType, text) {
+      const bubble = document.getElementById(targetType === 'player' ? 'player-speech-bubble' : 'opp-speech-bubble');
+      if (!bubble || !text) return;
+      bubble.textContent = text;
+      bubble.classList.remove('hidden', 'show');
+      void bubble.offsetWidth;
+      bubble.classList.add('show');
+
+      setTimeout(() => {
+        bubble.classList.remove('show');
+        setTimeout(() => bubble.classList.add('hidden'), 300);
+      }, 3500);
+    }
+
+    function getCharacterRandomLine(charObj, type) {
+      if (!charObj || !charObj.lines || !charObj.lines[type]) return null;
+      const lines = charObj.lines[type];
+      return lines[Math.floor(Math.random() * lines.length)];
+    }
+
     const sound = new SoundEngineClass();
     document.addEventListener('click', () => sound.init(), { once: true });
 
@@ -903,9 +1180,10 @@
       window.showMainMenu();
     };
 
-    window.showVsAiSetup = function() {
+        window.showVsAiSetup = function() {
       window.hideAllViews();
       document.getElementById('ai-setup-view').classList.remove('hidden');
+      initCharacterSelectionUI();
     };
 
     window.showOnlineSetup = function() {
@@ -953,7 +1231,7 @@
       return arr;
     }
 
-        // --- MODO CONTRA IA ---
+            // --- MODO CONTRA IA COM PERSONAGENS E DIÁLOGOS ---
     window.startAiGame = function() {
       gameState.mode = 'ai';
       gameState.myPlayerId = "0";
@@ -966,27 +1244,41 @@
       gameState.isGameActive = true;
       gameState.isProcessingTurn = false;
 
-      // 1. Reset completo e limpo dos jogadores
+      // 1. Obter o personagem escolhido pelo jogador
+      const myChar = CHARACTERS_ROSTER.find(c => c.id === selectedPlayerCharId) || CHARACTERS_ROSTER[1];
+
+      // 2. Sortear oponentes IA distintos do jogador
+      const availableBots = CHARACTERS_ROSTER.filter(c => c.id !== myChar.id);
+      const shuffledBots = shuffleArray([...availableBots]);
+
       gameState.players = [
-        { id: "0", name: 'Você', hand: [], matchedPairs: [], isHuman: true, isOut: false, avatar: '👑' }
+        { 
+          id: "0", 
+          name: myChar.name, 
+          hand: [], 
+          matchedPairs: [], 
+          isHuman: true, 
+          isOut: false, 
+          avatar: myChar.avatar,
+          charData: myChar
+        }
       ];
 
-      const botNames = ['Ana_Bot', 'Carlos_Bot', 'Pedro_Bot'];
-      const botAvatars = ['🤖', '🦊', '🦉'];
-
       for (let i = 1; i < gameState.playerCount; i++) {
+        const botChar = shuffledBots[i - 1] || availableBots[0];
         gameState.players.push({
           id: String(i),
-          name: botNames[i - 1],
+          name: botChar.name,
           hand: [],
           matchedPairs: [],
           isHuman: false,
           isOut: false,
-          avatar: botAvatars[i - 1]
+          avatar: botChar.avatar,
+          charData: botChar
         });
       }
 
-      // 2. Baralho oficial (24 cartas em 12 pares de animais + 1 carta da Banana = 25 cartas)
+      // 3. Embaralhar e distribuir 25 cartas (12 pares + 1 banana)
       const deck = shuffleArray(createDeck());
       let pIdx = 0;
       deck.forEach(card => {
@@ -994,7 +1286,7 @@
         pIdx = (pIdx + 1) % gameState.players.length;
       });
 
-      // 3. Descarte automático dos pares iniciais recebidos na mão
+      // 4. Descarte de pares iniciais
       gameState.totalDiscardedPairs = 0;
       gameState.players.forEach(player => {
         player.matchedPairs = [];
@@ -1003,7 +1295,15 @@
 
       gameState.currentTurnIndex = 0;
 
-      showToast("Cartas distribuídas! Pares iniciais foram baixados na mesa.");
+      // Fala inicial provocativa do bot oponente
+      const firstBot = gameState.players.find(p => !p.isHuman);
+      if (firstBot) {
+        setTimeout(() => {
+          const startLine = getCharacterRandomLine(firstBot.charData, 'start');
+          if (startLine) triggerSpeechBubble('opp', startLine);
+        }, 800);
+      }
+
       renderTable();
       processTurnState();
     };
@@ -1725,7 +2025,7 @@
       processTurnState();
     }
 
-    window.humanSelectOpponentCard = function(targetOppId, cardIdx) {
+        window.humanSelectOpponentCard = function(targetOppId, cardIdx) {
       const me = gameState.players.find(p => String(p.id) === String(gameState.myPlayerId)) || gameState.players[0];
       const current = gameState.players[gameState.currentTurnIndex];
 
@@ -1744,13 +2044,22 @@
       sound.playCardDraw();
       me.hand.push(drawnCard);
 
-      if (drawnCard.isBanana) sound.playBananaWarning();
+      if (drawnCard.isBanana) {
+        sound.playBananaWarning();
+        // Oponente provoca porque passou a banana
+        const oppLine = getCharacterRandomLine(targetOpp.charData, 'passBanana');
+        if (oppLine) triggerSpeechBubble('opp', oppLine);
+      }
 
       const initialCount = me.hand.length;
       discardPairsFromHand(me);
       checkPlayerOutStatus(targetOpp);
 
-      if (me.hand.length < initialCount) sound.playPairMatch();
+      if (me.hand.length < initialCount) {
+        sound.playPairMatch();
+        const myLine = getCharacterRandomLine(me.charData, 'pair');
+        if (myLine) triggerSpeechBubble('player', myLine);
+      }
 
       if (me.hand.length > 1) shuffleArray(me.hand);
       if (targetOpp.hand.length > 1) shuffleArray(targetOpp.hand);
