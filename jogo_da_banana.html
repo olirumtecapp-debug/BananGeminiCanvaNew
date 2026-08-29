@@ -359,6 +359,31 @@
       100% { transform: scale(1) rotate(0deg); }
     }
 
+
+    /* ANIMAÇÕES VISÍVEIS DE EMBARALHAMENTO DAS CARTAS */
+    @keyframes card-shuffle-left {
+      0% { transform: translateX(0) translateY(0) rotate(0deg); }
+      30% { transform: translateX(-36px) translateY(-14px) rotate(-14deg) scale(1.08); z-index: 30; }
+      60% { transform: translateX(30px) translateY(-6px) rotate(10deg) scale(0.96); z-index: 10; }
+      85% { transform: translateX(-10px) translateY(-2px) rotate(-3deg); }
+      100% { transform: translateX(0) translateY(0) rotate(0deg); }
+    }
+
+    @keyframes card-shuffle-right {
+      0% { transform: translateX(0) translateY(0) rotate(0deg); }
+      30% { transform: translateX(36px) translateY(-14px) rotate(14deg) scale(1.08); z-index: 30; }
+      60% { transform: translateX(-30px) translateY(-6px) rotate(-10deg) scale(0.96); z-index: 10; }
+      85% { transform: translateX(10px) translateY(-2px) rotate(3deg); }
+      100% { transform: translateX(0) translateY(0) rotate(0deg); }
+    }
+
+    .shuffle-card-left {
+      animation: card-shuffle-left 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+    }
+    .shuffle-card-right {
+      animation: card-shuffle-right 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+    }
+
 </style>
 
   <!-- Supabase JS Client for Realtime Multiplayer -->
@@ -786,14 +811,15 @@
         } catch (e) {}
       }
 
-      playCardShuffle() {
+            playCardShuffle() {
         if (!this.enabled) return;
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 8; i++) {
           setTimeout(() => {
-            const freq = 220 + Math.random() * 280;
-            this.playTone(freq, 'sine', 0.04, 0.07);
-          }, i * 40);
+            const freq = 180 + Math.random() * 260;
+            this.playTone(freq, 'sine', 0.05, 0.09);
+          }, i * 35);
         }
+      }
       }
 
       playCardDraw() {
@@ -1664,11 +1690,29 @@
       emitBananaRoom('ROOM_UPDATE', { room: roomUpdate });
     }
 
-        function advanceTurn() {
+            function triggerVisualShuffle(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const cards = container.querySelectorAll('.opp-card-back, .playing-card');
+      if (cards.length <= 1) return;
+
+      sound.playCardShuffle();
+      cards.forEach((card, idx) => {
+        card.classList.remove('shuffle-card-left', 'shuffle-card-right');
+        void card.offsetWidth; // Trigger reflow
+        card.classList.add(idx % 2 === 0 ? 'shuffle-card-left' : 'shuffle-card-right');
+      });
+
+      setTimeout(() => {
+        cards.forEach(card => card.classList.remove('shuffle-card-left', 'shuffle-card-right'));
+      }, 700);
+    }
+
+    function advanceTurn() {
       if (!gameState.isGameActive) return;
       gameState.currentTurnIndex = (gameState.currentTurnIndex + 1) % gameState.players.length;
       
-      // Embaralhar as mãos de todos os jogadores ativos para que a posição do Mico / Banana nunca fique fixa
+      // Embaralhar as mãos
       gameState.players.forEach(p => {
         if (!p.isOut && p.hand && p.hand.length > 1) {
           shuffleArray(p.hand);
@@ -1708,23 +1752,17 @@
 
       if (me.hand.length < initialCount) sound.playPairMatch();
 
-      // Embaralha a mão do jogador para esconder onde a nova carta ficou
-      if (me.hand.length > 1) {
-        shuffleArray(me.hand);
-      }
-      // Embaralha as cartas restantes do oponente
-      if (targetOpp.hand.length > 1) {
-        shuffleArray(targetOpp.hand);
-        sound.playCardShuffle();
-      }
+      if (me.hand.length > 1) shuffleArray(me.hand);
+      if (targetOpp.hand.length > 1) shuffleArray(targetOpp.hand);
 
       renderTable();
+      triggerVisualShuffle('opponents-container');
 
       if (gameState.mode === 'online') {
         syncOnlineState();
       }
 
-      setTimeout(() => advanceTurn(), 900);
+      setTimeout(() => advanceTurn(), 950);
     };
 
     function processTurnState() {
@@ -1747,18 +1785,23 @@
 
       if (turnBadge) turnBadge.textContent = currentPlayer.avatar;
 
-      // Se estamos nas rodadas finais (poucas cartas em jogo ou 1v1), avisar e animar
+      // O aviso de decisão final só aparece quando restam 3 ou menos cartas no total do jogo todo (iminência real do Mico)
       const totalCardsInPlay = activePlayers.reduce((acc, p) => acc + (p.hand ? p.hand.length : 0), 0);
-      const isEndgame = totalCardsInPlay <= 5 || activePlayers.length === 2;
+      const isImminentEndgame = totalCardsInPlay <= 3;
 
       if (String(currentPlayer.id) === String(gameState.myPlayerId)) {
         if (statusText) {
-          statusText.textContent = isEndgame 
-            ? "🔥 RODADA FINAL! Cartas embaralhadas! Escolha com cuidado!" 
-            : "Sua Vez! Escolha uma carta do oponente destacado.";
+          if (isImminentEndgame) {
+            statusText.textContent = "⚠️ DECISÃO FINAL! Cartas embaralhadas... Cuidado com a Banana!";
+          } else {
+            statusText.textContent = "Sua Vez! Escolha uma carta do oponente destacado.";
+          }
         }
         gameState.isProcessingTurn = false;
         renderTable();
+        if (isImminentEndgame) {
+          setTimeout(() => triggerVisualShuffle('opponents-container'), 100);
+        }
       } else {
         if (statusText) statusText.textContent = `Vez de ${currentPlayer.name}...`;
         gameState.isProcessingTurn = true;
@@ -1788,7 +1831,6 @@
         return;
       }
 
-      // Embaralhar antes do bot escolher para ser 100% imprevisível
       if (targetPlayer.hand.length > 1) {
         shuffleArray(targetPlayer.hand);
       }
@@ -1810,8 +1852,9 @@
       }
 
       renderTable();
+      triggerVisualShuffle('opponents-container');
 
-      setTimeout(() => advanceTurn(), 900);
+      setTimeout(() => advanceTurn(), 950);
     }
 
     function endGame(loser) {
