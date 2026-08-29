@@ -904,7 +904,7 @@
       return arr;
     }
 
-    // --- MODO CONTRA IA ---
+        // --- MODO CONTRA IA ---
     window.startAiGame = function() {
       gameState.mode = 'ai';
       gameState.myPlayerId = "0";
@@ -917,6 +917,7 @@
       gameState.isGameActive = true;
       gameState.isProcessingTurn = false;
 
+      // 1. Reset completo e limpo dos jogadores
       gameState.players = [
         { id: "0", name: 'Você', hand: [], matchedPairs: [], isHuman: true, isOut: false, avatar: '👑' }
       ];
@@ -936,16 +937,24 @@
         });
       }
 
+      // 2. Baralho oficial (24 cartas em 12 pares de animais + 1 carta da Banana = 25 cartas)
       const deck = shuffleArray(createDeck());
       let pIdx = 0;
       deck.forEach(card => {
         gameState.players[pIdx].hand.push(card);
-        pIdx = (pIdx + 1) % gameState.playerCount;
+        pIdx = (pIdx + 1) % gameState.players.length;
       });
 
-      gameState.players.forEach(player => discardPairsFromHand(player));
+      // 3. Descarte automático dos pares iniciais recebidos na mão
+      gameState.totalDiscardedPairs = 0;
+      gameState.players.forEach(player => {
+        player.matchedPairs = [];
+        discardPairsFromHand(player);
+      });
+
       gameState.currentTurnIndex = 0;
 
+      showToast("Cartas distribuídas! Pares iniciais foram baixados na mesa.");
       renderTable();
       processTurnState();
     };
@@ -1057,7 +1066,7 @@
       }
     }
 
-    window.createOnlineRoom = async function() {
+        window.createOnlineRoom = async function() {
       try {
         const nick = document.getElementById('online-nickname-input')?.value.trim() || 'Jogador 1';
         const code = Math.floor(1000 + Math.random() * 9000).toString();
@@ -1081,6 +1090,7 @@
           }],
           currentTurnIndex: 0,
           totalDiscardedPairs: 0,
+          rematch: null,
           lastUpdated: Date.now()
         };
 
@@ -1326,7 +1336,7 @@
       }
     };
 
-    window.startOnlineGameHost = async function() {
+        window.startOnlineGameHost = async function() {
       if (!gameState.isHost) return;
       const code = gameState.onlineRoomCode;
       let roomData = gameState.onlineRoomData;
@@ -1339,21 +1349,12 @@
         } catch(e) {}
       }
 
-      if (!roomData) {
-        try {
-          const raw = localStorage.getItem('banana_room_' + code);
-          if (raw) roomData = JSON.parse(raw);
-        } catch(e) {}
-      }
-
-      if (!roomData) return;
-
-      if (!roomData.players || roomData.players.length < 2) {
+      if (!roomData || !roomData.players || roomData.players.length < 2) {
         showToast("Aguarde pelo menos mais um amigo entrar para iniciar a partida.");
         return;
       }
 
-      // Embaralha e distribui o baralho
+      // Embaralha e distribui o baralho igualmente
       const deck = shuffleArray(createDeck());
       roomData.players.forEach(p => {
         p.hand = [];
@@ -1371,6 +1372,8 @@
       roomData.players.forEach(p => discardPairsFromHand(p));
       roomData.status = 'playing';
       roomData.currentTurnIndex = 0;
+      roomData.rematch = null;
+      roomData.lastUpdated = Date.now();
 
       gameState.onlineRoomData = roomData;
       try { localStorage.setItem('banana_room_' + code, JSON.stringify(roomData)); } catch(e) {}
@@ -1387,6 +1390,7 @@
       emitBananaRoom('START_GAME', { room: roomData });
       emitBananaRoom('ROOM_UPDATE', { room: roomData });
       applyRoomDataUpdate(code, roomData);
+      showToast("Partida online iniciada! Cartas distribuídas.");
     };
 
     window.copyRoomCode = function() {
