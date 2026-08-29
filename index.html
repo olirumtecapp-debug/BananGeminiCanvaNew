@@ -36,13 +36,13 @@
   </script>
 
   <style>
-    /* FELTRO VERDE ESCURO MACRO */
+    /* 1. FELTRO VERDE 100% LIMPO E CONTÍNUO */
     body {
       font-family: 'Fredoka', 'Bangers', sans-serif;
-      background-color: #0c4d2d;
-      background-image: url('./assets/ui/felt_table_3d.png'), radial-gradient(#083620 1.5px, transparent 1.5px);
-      background-repeat: repeat, repeat;
-      background-size: 512px auto, 14px 14px;
+      background-color: #0e4e30;
+      background-image: url('./assets/felt_texture.jpg');
+      background-repeat: repeat;
+      background-size: 260px 260px;
       min-height: 100vh;
       color: #000000;
       user-select: none;
@@ -50,9 +50,9 @@
       overflow-x: hidden;
     }
 
-    /* BARRA SUPERIOR 3D TEXTURIZADA */
+    /* 2. BARRA SUPERIOR 3D TEXTURIZADA */
     .top-header-3d {
-      background: #f2b827;
+      background-color: #f2b827;
       background-image: url('./assets/mustard_texture.jpg');
       background-repeat: repeat;
       background-size: 256px 256px;
@@ -81,7 +81,7 @@
       box-shadow: 0 1px 0 #475569, 0 2px 4px rgba(0, 0, 0, 0.3) !important;
     }
 
-    /* PLACAR REBAIXADO COM SOMBRA INTERNA PROFUNDA */
+    /* PLACAR REBAIXADO */
     .recessed-counter {
       background: #ffffff;
       border: 2px solid #94a3b8;
@@ -90,7 +90,64 @@
       font-weight: 800;
     }
 
-    /* BANDEJA DE MADEIRA (WOOD TRAY) COM CANTONEIRAS DE LATÃO */
+    /* 3. ESTRUTURA TUBULAR DE METAL DOS PARES (EXATAMENTE COMO NA IMAGEM 3) */
+    .tubular-pairs-rack {
+      border: 4px solid #8e96a0;
+      border-radius: 20px;
+      background: transparent;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(0, 0, 0, 0.4);
+      position: relative;
+      padding: 14px 10px 10px 10px;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    /* TRAVESSAS HORIZONTAIS DE MADEIRA DO RACK */
+    .wood-slat-beam {
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      height: 16px;
+      background: linear-gradient(180deg, #5c3214 0%, #3a1c09 100%);
+      border-top: 2px solid #7c4822;
+      border-bottom: 2px solid #1c0a02;
+      border-radius: 4px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .slat-top { top: 58px; }
+    .slat-bottom { top: 132px; }
+
+    /* PLAQUINHA METÁLICA DE CONTADOR NO TOPO DO RACK */
+    .metal-tag-pill {
+      background: linear-gradient(180deg, #e5e7eb 0%, #9ca3af 100%);
+      border: 1.5px solid #4b5563;
+      border-radius: 6px;
+      padding: 1px 8px;
+      font-size: 11px;
+      font-weight: 900;
+      color: #1f2937;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8);
+      position: relative;
+    }
+    .metal-tag-pill::before, .metal-tag-pill::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #ca8a04;
+      border: 0.5px solid #713f12;
+    }
+    .metal-tag-pill::before { left: 3px; }
+    .metal-tag-pill::after { right: 3px; }
+
+    /* 4. BANDEJA DE MADEIRA (WOOD TRAY) */
     .wood-tray-3d {
       background: linear-gradient(180deg, #8d5225 0%, #5d3314 45%, #3e1f0b 100%);
       background-image: url('./assets/wood_texture.jpg');
@@ -101,7 +158,6 @@
       position: relative;
     }
 
-    /* CANTONEIRAS DE LATÃO CHANFRADAS */
     .brass-bracket-tl {
       position: absolute; top: -3px; left: -3px; width: 26px; height: 26px;
       background: linear-gradient(135deg, #fef08a 0%, #ca8a04 50%, #854d0e 100%);
@@ -131,14 +187,12 @@
       pointer-events: none; z-index: 10;
     }
 
-    /* PLACA DE METAL ESCOVADO */
     .brushed-metal-bar {
       background: linear-gradient(90deg, #9ca3af 0%, #e5e7eb 45%, #d1d5db 55%, #9ca3af 100%);
       border-bottom: 2.5px solid #4b5563;
       box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.7), 0 3px 6px rgba(0, 0, 0, 0.35);
     }
 
-    /* NICHO AFUNDADO "JOGANDO" */
     .inset-pill-slot {
       background: #111c14;
       border: 2px solid #2e4436;
@@ -146,7 +200,6 @@
       box-shadow: inset 2px 3px 6px rgba(0, 0, 0, 0.9), 0 1px 1px rgba(255, 255, 255, 0.4);
     }
 
-    /* CANALETA REBAIXADA DA BANDEJA */
     .wood-slot-groove {
       background-color: #210d03;
       background-image: url('./assets/wood_texture.jpg');
@@ -155,24 +208,7 @@
       box-shadow: inset 0 12px 24px rgba(0, 0, 0, 0.95);
     }
 
-    /* PRATELEIRAS TUBULARES DE METAL (RACKS) */
-    .pairs-shelf-rack {
-      background-color: #0b3d23;
-      border: 3.5px solid #94a3b8;
-      border-radius: 16px;
-      box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.7), 0 8px 18px rgba(0, 0, 0, 0.45);
-      position: relative;
-    }
-
-    .wooden-crossbeam {
-      background: linear-gradient(180deg, #6d3a17 0%, #452109 100%);
-      border-top: 2px solid #8e4f20;
-      border-bottom: 2.5px solid #1c0b02;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
-      height: 18px;
-    }
-
-    /* CARTAS JOGÁVEIS NA MÃO */
+    /* 5. CARTAS JOGÁVEIS NA MÃO */
     .playing-card {
       width: 90px;
       height: 132px;
@@ -206,7 +242,7 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5) !important;
     }
 
-    /* VERSO DAS CARTAS DO OPONENTE EM LEQUE */
+    /* 6. VERSO DAS CARTAS DO OPONENTE EM LEQUE */
     .playing-card-opp {
       width: 74px;
       height: 108px;
@@ -242,14 +278,14 @@
       background: #f5c518 !important;
     }
 
-    /* MINI CARTAS DE PARES DESCARTADOS */
+    /* MINI CARTAS DE PARES APOIADAS NAS TRAVESSAS DE MADEIRA */
     .mini-pair-card {
-      width: 54px;
-      height: 74px;
+      width: 50px;
+      height: 70px;
       border-radius: 8px !important;
       background: #ffffff !important;
       border: 2px solid #1a1a1a !important;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.55) !important;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -258,11 +294,12 @@
       transition: transform 0.15s ease;
       flex-shrink: 0;
       overflow: hidden;
+      z-index: 5;
     }
     .mini-pair-card:hover {
-      transform: scale(1.18) translateY(-4px);
-      box-shadow: 0 8px 14px rgba(0, 0, 0, 0.55) !important;
-      z-index: 20;
+      transform: scale(1.22) translateY(-6px);
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.7) !important;
+      z-index: 25;
     }
 
     .glass-modal {
@@ -277,12 +314,9 @@
     }
 
     .glass-panel {
-      background-color: rgba(82, 45, 20, 0.95);
-      background-image: url('./assets/wood_texture.jpg');
-      background-repeat: repeat;
-      background-size: 320px 320px;
-      border: 3.5px solid #231004;
-      border-radius: 18px;
+      background: rgba(18, 56, 34, 0.85);
+      border: 3px solid #8e96a0;
+      border-radius: 20px;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     }
 
