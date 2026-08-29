@@ -48,18 +48,22 @@
       user-select: none;
       -webkit-user-select: none;
       overflow-x: hidden;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
     }
+    body::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 
-    /* 2. BARRA SUPERIOR 3D TEXTURIZADA */
+    /* BARRA SUPERIOR 3D TEXTURIZADA */
     .top-header-3d {
       background-color: #f2b827;
       background-image: url('./assets/mustard_texture.jpg');
       background-repeat: repeat;
       background-size: 256px 256px;
-      border-bottom: 4.5px solid #b8820c;
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6);
+      border-bottom: 4px solid #b8820c;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
       position: relative;
       z-index: 50;
     }
@@ -93,89 +97,169 @@
       font-weight: 800;
     }
 
-    /* 3. CARTAS DO ADVERSÁRIO (EM CIMA) */
-    .opp-card-wrapper {
+    /* BANDEJAS DE MADEIRA (TOP E BOTTOM IGUAIS E SIMÉTRICAS) */
+    .wood-tray-3d {
+      background: linear-gradient(180deg, #8d5225 0%, #5d3314 45%, #3e1f0b 100%);
+      background-image: url('./assets/wood_texture.jpg');
+      background-size: 380px auto;
+      border: 3.5px solid #231004;
+      border-radius: 18px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), inset 0 2px 4px rgba(255, 255, 255, 0.3);
       position: relative;
-      display: inline-block;
-      margin-left: -28px;
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
-    }
-    .opp-card-wrapper:first-child {
-      margin-left: 0;
+      width: 100%;
     }
 
-    .opp-card-back {
-      width: 72px;
-      height: 104px;
+    .brass-bracket-tl {
+      position: absolute; top: -3px; left: -3px; width: 22px; height: 22px;
+      background: linear-gradient(135deg, #fef08a 0%, #ca8a04 50%, #854d0e 100%);
+      border-top-left-radius: 16px; border: 1.5px solid #713f12;
+      box-shadow: 1px 1px 3px rgba(0,0,0,0.5), inset 1px 1px 1px rgba(255,255,255,0.8);
+      pointer-events: none; z-index: 10;
+    }
+    .brass-bracket-tr {
+      position: absolute; top: -3px; right: -3px; width: 22px; height: 22px;
+      background: linear-gradient(225deg, #fef08a 0%, #ca8a04 50%, #854d0e 100%);
+      border-top-right-radius: 16px; border: 1.5px solid #713f12;
+      box-shadow: -1px 1px 3px rgba(0,0,0,0.5), inset -1px 1px 1px rgba(255,255,255,0.8);
+      pointer-events: none; z-index: 10;
+    }
+    .brass-bracket-bl {
+      position: absolute; bottom: -3px; left: -3px; width: 22px; height: 22px;
+      background: linear-gradient(45deg, #fef08a 0%, #ca8a04 50%, #854d0e 100%);
+      border-bottom-left-radius: 16px; border: 1.5px solid #713f12;
+      box-shadow: 1px -1px 3px rgba(0,0,0,0.5), inset 1px -1px 1px rgba(255,255,255,0.8);
+      pointer-events: none; z-index: 10;
+    }
+    .brass-bracket-br {
+      position: absolute; bottom: -3px; right: -3px; width: 22px; height: 22px;
+      background: linear-gradient(315deg, #fef08a 0%, #ca8a04 50%, #854d0e 100%);
+      border-bottom-right-radius: 16px; border: 1.5px solid #713f12;
+      box-shadow: -1px -1px 3px rgba(0,0,0,0.5), inset -1px 1px 1px rgba(255,255,255,0.8);
+      pointer-events: none; z-index: 10;
+    }
+
+    .brushed-metal-bar {
+      background: linear-gradient(90deg, #9ca3af 0%, #e5e7eb 45%, #d1d5db 55%, #9ca3af 100%);
+      border-bottom: 2px solid #4b5563;
+      box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.7), 0 2px 4px rgba(0, 0, 0, 0.35);
+    }
+
+    .inset-pill-slot {
+      background: #111c14;
+      border: 1.5px solid #2e4436;
+      border-radius: 999px;
+      box-shadow: inset 2px 3px 5px rgba(0, 0, 0, 0.9), 0 1px 1px rgba(255, 255, 255, 0.4);
+    }
+
+    .wood-slot-groove {
+      background-color: #210d03;
+      background-image: url('./assets/wood_texture.jpg');
+      background-size: 260px auto;
+      border-top: 3px solid #140701;
+      box-shadow: inset 0 10px 20px rgba(0, 0, 0, 0.95);
+    }
+
+    /* CARTAS FLUIDAS SEM ROLAGEM */
+    .playing-card {
+      width: clamp(64px, 10.5vw, 96px);
+      height: clamp(94px, 15.5vw, 142px);
       border-radius: 10px !important;
+      position: relative;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+      cursor: pointer;
+      flex-shrink: 1;
+      border: 2px solid #1a1a1a !important;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+      background: #ffffff !important;
+      overflow: hidden;
+    }
+
+    .playing-card:hover:not(.disabled-card) {
+      transform: translateY(-10px) scale(1.05);
+      box-shadow: 0 18px 28px rgba(0, 0, 0, 0.75) !important;
+      z-index: 30;
+    }
+
+    .playing-card:active:not(.disabled-card) {
+      transform: translateY(-2px) scale(0.98) !important;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .card-banana-special {
+      background: #f5c518 !important;
+    }
+
+    /* CARTAS DO ADVERSÁRIO (FLUIDAS E SEM ROLAGEM) */
+    .opp-card-back {
+      width: clamp(56px, 9vw, 84px);
+      height: clamp(82px, 13vw, 122px);
+      border-radius: 9px !important;
       border: 2.5px solid #ffffff !important;
       background-color: #0c4d2d !important;
       background-image: url('./assets/card_back_pattern.png') !important;
       background-size: 100% 100% !important;
       background-position: center !important;
-      box-shadow: -3px 6px 14px rgba(0, 0, 0, 0.55) !important;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55) !important;
       cursor: pointer;
-      display: block;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+      flex-shrink: 1;
     }
 
-    @media (min-width: 640px) {
-      .opp-card-wrapper { margin-left: -32px; }
-      .opp-card-back { width: 84px; height: 120px; border-radius: 12px !important; }
-    }
-
-    .opp-card-wrapper:hover:not(.disabled-card) {
-      transform: translateY(-12px) scale(1.1);
-      z-index: 40 !important;
-    }
-    .opp-card-wrapper:hover:not(.disabled-card) .opp-card-back {
+    .opp-card-back:hover:not(.disabled-card) {
+      transform: translateY(-8px) scale(1.08);
       box-shadow: 0 16px 24px rgba(0, 0, 0, 0.75) !important;
       border-color: #facc15 !important;
+      z-index: 30;
     }
 
-    .opp-card-wrapper.active-turn-draw .opp-card-back {
-      box-shadow: 0 0 16px #facc15, -3px 6px 12px rgba(0,0,0,0.5) !important;
+    .opp-card-back.active-turn-draw {
+      box-shadow: 0 0 18px #facc15, 0 6px 12px rgba(0,0,0,0.5) !important;
       border-color: #facc15 !important;
+      animation: pulse-glow-opp 1.4s infinite alternate;
     }
 
-    /* 4. SUPORTES TUBULARES DE METAL PARA OS PARES (NO MEIO) */
+    @keyframes pulse-glow-opp {
+      from { transform: translateY(-2px) scale(1.02); }
+      to { transform: translateY(-6px) scale(1.06); }
+    }
+
+    /* SUPORTES TUBULARES DE PARES */
     .tubular-pairs-rack {
-      border: 4px solid #8e96a0;
-      border-radius: 18px;
-      background: rgba(8, 45, 26, 0.55);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), inset 0 2px 6px rgba(0, 0, 0, 0.6);
+      border: 3.5px solid #8e96a0;
+      border-radius: 16px;
+      background: rgba(8, 45, 26, 0.6);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 2px 5px rgba(0, 0, 0, 0.5);
       position: relative;
-      padding: 10px 8px 14px 8px;
-      min-height: 185px;
+      padding: 8px 6px 10px 6px;
+      min-height: 160px;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
       flex: 1;
     }
 
-    /* TRAVESSAS HORIZONTAIS DE MADEIRA DOS PARES */
     .wood-slat-beam {
       position: absolute;
       left: 6px;
       right: 6px;
-      height: 18px;
+      height: 16px;
       background: linear-gradient(180deg, #5c3214 0%, #3a1c09 100%);
       border-top: 2px solid #854d24;
-      border-bottom: 2.5px solid #1c0a02;
+      border-bottom: 2px solid #1c0a02;
       border-radius: 4px;
-      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.7);
       pointer-events: none;
       z-index: 1;
     }
-    .slat-top { top: 58px; }
-    .slat-bottom { top: 136px; }
+    .slat-top { top: 50px; }
+    .slat-bottom { top: 118px; }
 
-    /* PLAQUINHA METÁLICA DE CONTADOR NO TOPO DO RACK */
     .metal-tag-pill {
       background: linear-gradient(180deg, #f3f4f6 0%, #9ca3af 100%);
       border: 1.5px solid #4b5563;
-      border-radius: 6px;
-      padding: 1px 8px;
-      font-size: 11px;
+      border-radius: 5px;
+      padding: 1px 7px;
+      font-size: 10px;
       font-weight: 900;
       color: #1f2937;
       box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.8);
@@ -186,23 +270,22 @@
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
-      width: 4px;
-      height: 4px;
+      width: 3.5px;
+      height: 3.5px;
       border-radius: 50%;
       background: #ca8a04;
       border: 0.5px solid #713f12;
     }
-    .metal-tag-pill::before { left: 3px; }
-    .metal-tag-pill::after { right: 3px; }
+    .metal-tag-pill::before { left: 2.5px; }
+    .metal-tag-pill::after { right: 2.5px; }
 
-    /* MINI CARTAS DE PARES APOIADAS NAS TRAVESSAS */
     .mini-pair-card {
-      width: 52px;
-      height: 72px;
-      border-radius: 8px !important;
+      width: clamp(44px, 6.5vw, 56px);
+      height: clamp(62px, 9vw, 78px);
+      border-radius: 7px !important;
       background: #ffffff !important;
-      border: 2px solid #1a1a1a !important;
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6) !important;
+      border: 1.5px solid #1a1a1a !important;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6) !important;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -214,111 +297,11 @@
       z-index: 5;
     }
     .mini-pair-card:hover {
-      transform: scale(1.25) translateY(-8px);
-      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.8) !important;
+      transform: scale(1.2) translateY(-6px);
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.8) !important;
       z-index: 25;
     }
 
-    /* 5. BANDEJA DE MADEIRA DA SUA MÃO (EMBAIXO) */
-    .wood-tray-3d {
-      background: linear-gradient(180deg, #8d5225 0%, #5d3314 45%, #3e1f0b 100%);
-      background-image: url('./assets/wood_texture.jpg');
-      background-size: 380px auto;
-      border: 4px solid #231004;
-      border-radius: 20px;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75), inset 0 2px 4px rgba(255, 255, 255, 0.3);
-      position: relative;
-    }
-
-    .brass-bracket-tl {
-      position: absolute; top: -3px; left: -3px; width: 28px; height: 28px;
-      background: linear-gradient(135deg, #fef08a 0%, #ca8a04 50%, #854d0e 100%);
-      border-top-left-radius: 18px; border: 1.5px solid #713f12;
-      box-shadow: 1px 1px 3px rgba(0,0,0,0.5), inset 1px 1px 1px rgba(255,255,255,0.8);
-      pointer-events: none; z-index: 10;
-    }
-    .brass-bracket-tr {
-      position: absolute; top: -3px; right: -3px; width: 28px; height: 28px;
-      background: linear-gradient(225deg, #fef08a 0%, #ca8a04 50%, #854d0e 100%);
-      border-top-right-radius: 18px; border: 1.5px solid #713f12;
-      box-shadow: -1px 1px 3px rgba(0,0,0,0.5), inset -1px 1px 1px rgba(255,255,255,0.8);
-      pointer-events: none; z-index: 10;
-    }
-    .brass-bracket-bl {
-      position: absolute; bottom: -3px; left: -3px; width: 28px; height: 28px;
-      background: linear-gradient(45deg, #fef08a 0%, #ca8a04 50%, #854d0e 100%);
-      border-bottom-left-radius: 18px; border: 1.5px solid #713f12;
-      box-shadow: 1px -1px 3px rgba(0,0,0,0.5), inset 1px -1px 1px rgba(255,255,255,0.8);
-      pointer-events: none; z-index: 10;
-    }
-    .brass-bracket-br {
-      position: absolute; bottom: -3px; right: -3px; width: 28px; height: 28px;
-      background: linear-gradient(315deg, #fef08a 0%, #ca8a04 50%, #854d0e 100%);
-      border-bottom-right-radius: 18px; border: 1.5px solid #713f12;
-      box-shadow: -1px -1px 3px rgba(0,0,0,0.5), inset -1px -1px 1px rgba(255,255,255,0.8);
-      pointer-events: none; z-index: 10;
-    }
-
-    .brushed-metal-bar {
-      background: linear-gradient(90deg, #9ca3af 0%, #e5e7eb 45%, #d1d5db 55%, #9ca3af 100%);
-      border-bottom: 2.5px solid #4b5563;
-      box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.7), 0 3px 6px rgba(0, 0, 0, 0.35);
-    }
-
-    .inset-pill-slot {
-      background: #111c14;
-      border: 2px solid #2e4436;
-      border-radius: 999px;
-      box-shadow: inset 2px 3px 6px rgba(0, 0, 0, 0.9), 0 1px 1px rgba(255, 255, 255, 0.4);
-    }
-
-    .wood-slot-groove {
-      background-color: #210d03;
-      background-image: url('./assets/wood_texture.jpg');
-      background-size: 260px auto;
-      border-top: 3.5px solid #140701;
-      box-shadow: inset 0 12px 24px rgba(0, 0, 0, 0.95);
-    }
-
-    /* CARTAS JOGÁVEIS NA MÃO */
-    .playing-card {
-      width: 90px;
-      height: 136px;
-      border-radius: 12px !important;
-      position: relative;
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
-      cursor: pointer;
-      flex-shrink: 0;
-      border: 2.5px solid #1a1a1a !important;
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4) !important;
-      background: #ffffff !important;
-      overflow: hidden;
-    }
-
-    @media (min-width: 640px) {
-      .playing-card {
-        width: 114px;
-        height: 168px;
-        border-radius: 14px !important;
-      }
-    }
-
-    .playing-card:hover:not(.disabled-card) {
-      transform: translateY(-14px) scale(1.06);
-      box-shadow: 0 22px 32px rgba(0, 0, 0, 0.75) !important;
-      z-index: 30;
-    }
-
-    .playing-card:active:not(.disabled-card) {
-      transform: translateY(-2px) scale(0.98) !important;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5) !important;
-    }
-
-    .card-banana-special {
-      background: #f5c518 !important;
-    }
-
-    /* MODAL DE LUXO PADRONIZADO */
     .luxury-modal-card {
       background-color: #f5c518;
       background-image: url('./assets/mustard_texture.jpg');
@@ -330,46 +313,14 @@
       color: #1a1a1a;
     }
 
-    /* BOTÕES DO MENU PRINCIPAL */
-    .menu-action-btn-green {
-      background: linear-gradient(180deg, #34d399 0%, #10b981 50%, #059669 100%);
-      border: 3px solid #000000;
-      border-radius: 16px;
-      box-shadow: 0 6px 0 #000000, 0 8px 16px rgba(0, 0, 0, 0.4);
-      color: #000000;
-      transition: all 0.12s ease;
-      cursor: pointer;
+    /* REMOVER QUALQUER SCROLLBAR */
+    * {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
     }
-    .menu-action-btn-green:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 0 #000000, 0 12px 20px rgba(0, 0, 0, 0.5);
+    *::-webkit-scrollbar {
+      display: none !important;
     }
-    .menu-action-btn-green:active {
-      transform: translateY(4px);
-      box-shadow: 0 2px 0 #000000, 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    .menu-action-btn-yellow {
-      background: linear-gradient(180deg, #fde047 0%, #eab308 50%, #ca8a04 100%);
-      border: 3px solid #000000;
-      border-radius: 16px;
-      box-shadow: 0 6px 0 #000000, 0 8px 16px rgba(0, 0, 0, 0.4);
-      color: #000000;
-      transition: all 0.12s ease;
-      cursor: pointer;
-    }
-    .menu-action-btn-yellow:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 0 #000000, 0 12px 20px rgba(0, 0, 0, 0.5);
-    }
-    .menu-action-btn-yellow:active {
-      transform: translateY(4px);
-      box-shadow: 0 2px 0 #000000, 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    ::-webkit-scrollbar { height: 7px; width: 7px; }
-    ::-webkit-scrollbar-track { background: #1c0a02; border-radius: 999px; }
-    ::-webkit-scrollbar-thumb { background: #f5c518; border: 1.5px solid #000000; border-radius: 999px; }
 </style>
 
   <!-- Supabase JS Client for Realtime Multiplayer -->
@@ -573,66 +524,93 @@
       </div>
     </section>
 
-            <!-- ÁREA DA MESA DE JOGO (ADVERSÁRIO EM CIMA, PARES NO MEIO, SUA MÃO EMBAIXO) -->
-    <section id="game-table" class="w-full h-full flex-1 flex flex-col justify-between hidden gap-3 py-1">
+                <!-- ÁREA DA MESA DE JOGO (BANDEJA SUPERIOR DO OPONENTE + PARES NO MEIO + BANDEJA DA SUA MÃO) -->
+    <section id="game-table" class="w-full h-full flex-1 flex flex-col justify-between items-center hidden gap-2.5 py-1 max-w-4xl mx-auto px-2">
 
-      <!-- 1. ADVERSÁRIO(S) EM CIMA -->
-      <div id="opponents-container" class="w-full flex flex-wrap justify-center items-center gap-6 py-1"></div>
+      <!-- 1. BANDEJA DE MADEIRA DO ADVERSÁRIO (EM CIMA - MESMO PADRÃO DA SUA MÃO) -->
+      <div id="opp-tray-wrapper" class="w-full wood-tray-3d p-1 sm:p-1.5">
+        <div class="brass-bracket-tl"></div>
+        <div class="brass-bracket-tr"></div>
+        <div class="brass-bracket-bl"></div>
+        <div class="brass-bracket-br"></div>
 
-      <!-- 2. MESA CENTRAL DE PARES NO MEIO (SUPORTES TUBULARES DE METAL COM TRAVESSAS DE MADEIRA) -->
-      <div class="w-full flex flex-col gap-2">
+        <!-- Friso Metálico do Oponente -->
+        <div class="brushed-metal-bar rounded-t-xl px-3 py-1.5 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span id="opp-avatar-icon" class="text-base">🤖</span>
+            <span id="opp-display-name" class="font-black text-[#1f2937] text-xs sm:text-sm tracking-wide uppercase">ANA_BOT</span>
+            <span id="opp-display-count" class="text-[10px] font-black bg-[#374151] text-[#fef08a] px-2 py-0.5 rounded-md shadow-inner">
+              4 Cartas
+            </span>
+          </div>
+          <!-- Nicho de Status do Oponente -->
+          <div class="inset-pill-slot px-2.5 py-0.5 flex items-center justify-center">
+            <span id="opp-status-text" class="text-[10px] font-black text-[#facc15] tracking-wider uppercase">
+              Aguardando
+            </span>
+          </div>
+        </div>
+
+        <!-- Canaleta de Madeira das Cartas do Oponente -->
+        <div class="wood-slot-groove rounded-b-xl p-2 sm:p-3 flex items-center justify-center min-h-[95px] sm:min-h-[130px]">
+          <div id="opponents-container" class="flex items-center justify-center gap-1.5 sm:gap-2.5 flex-wrap w-full"></div>
+        </div>
+      </div>
+
+      <!-- 2. MESA CENTRAL DE PARES (NO MEIO) -->
+      <div class="w-full flex flex-col gap-1.5">
         <div class="flex items-center justify-between px-2">
-          <span class="text-xs font-black text-[#fef08a] uppercase tracking-wider flex items-center gap-2 drop-shadow">
-            <span>📚</span> MESA CENTRAL DE PARES FORMADOS
+          <span class="text-[11px] font-black text-[#fef08a] uppercase tracking-wider flex items-center gap-1.5 drop-shadow">
+            <span>📚</span> MESA CENTRAL DE PARES
           </span>
-          <div class="flex items-center gap-1.5 text-xs font-black bg-[#f5c518] text-[#1a1a1a] px-3 py-0.5 rounded-full border border-black shadow">
+          <div class="flex items-center gap-1 text-[11px] font-black bg-[#f5c518] text-[#1a1a1a] px-2.5 py-0.5 rounded-full border border-black shadow">
             <span>🃏</span>
             <span id="discard-pairs-count">0 / 12 Pares</span>
           </div>
         </div>
 
-        <div id="central-pairs-container" class="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+        <div id="central-pairs-container" class="w-full flex flex-col sm:flex-row gap-3"></div>
       </div>
 
-      <!-- BANNER / STATUS DO TURNO -->
-      <div class="w-full max-w-xl mx-auto bg-[#f5c518] text-[#1a1a1a] border-2 border-[#1a1a1a] rounded-xl px-4 py-1.5 flex items-center justify-between shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
+      <!-- STATUS / BANNER DO TURNO -->
+      <div class="w-full max-w-lg mx-auto bg-[#f5c518] text-[#1a1a1a] border-2 border-[#1a1a1a] rounded-xl px-3 py-1 flex items-center justify-between shadow-[0_3px_8px_rgba(0,0,0,0.6)]">
         <div class="flex items-center gap-2">
-          <div id="turn-indicator-badge" class="w-7 h-7 rounded-lg bg-[#1a1a1a] text-yellow-300 font-black text-sm flex items-center justify-center">
+          <div id="turn-indicator-badge" class="w-6 h-6 rounded bg-[#1a1a1a] text-yellow-300 font-black text-xs flex items-center justify-center">
             👑
           </div>
-          <h3 id="turn-status-text" class="text-xs sm:text-sm font-black uppercase tracking-wide">
-            Sua Vez! Escolha uma carta do oponente destacado.
+          <h3 id="turn-status-text" class="text-xs font-black uppercase tracking-wide">
+            Sua Vez! Escolha uma carta do oponente.
           </h3>
         </div>
       </div>
 
-      <!-- 3. SUA MÃO EMBAIXO (BANDEJA DE MADEIRA COM CANTONEIRAS DE LATÃO) -->
-      <div class="w-full wood-tray-3d p-1.5 sm:p-2">
+      <!-- 3. BANDEJA DE MADEIRA DA SUA MÃO (EMBAIXO - MESMO PADRÃO DA SUPERIOR) -->
+      <div class="w-full wood-tray-3d p-1 sm:p-1.5">
         <div class="brass-bracket-tl"></div>
         <div class="brass-bracket-tr"></div>
         <div class="brass-bracket-bl"></div>
         <div class="brass-bracket-br"></div>
 
         <!-- Friso Metálico do Título -->
-        <div class="brushed-metal-bar rounded-t-xl px-4 py-2 flex items-center justify-between">
+        <div class="brushed-metal-bar rounded-t-xl px-3 py-1.5 flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span class="text-base text-[#4a2e12] drop-shadow-sm">👑</span>
-            <span id="player-hand-title" class="font-black text-[#1f2937] text-sm tracking-wide">Sua mão</span>
-            <span id="player-card-count" class="text-[11px] font-black bg-[#374151] text-[#fef08a] px-2.5 py-0.5 rounded-md shadow-inner">
+            <span id="player-hand-title" class="font-black text-[#1f2937] text-xs sm:text-sm tracking-wide">Sua mão</span>
+            <span id="player-card-count" class="text-[10px] font-black bg-[#374151] text-[#fef08a] px-2 py-0.5 rounded-md shadow-inner">
               0 Cartas
             </span>
           </div>
           <!-- Nicho Afundado "Jogando" -->
-          <div class="inset-pill-slot px-3 py-0.5 flex items-center justify-center">
-            <span id="player-status-tag" class="text-[11px] font-black text-[#4ade80] tracking-wider uppercase">
+          <div class="inset-pill-slot px-2.5 py-0.5 flex items-center justify-center">
+            <span id="player-status-tag" class="text-[10px] font-black text-[#4ade80] tracking-wider uppercase">
               Jogando
             </span>
           </div>
         </div>
 
         <!-- Canaleta de Madeira Afundada -->
-        <div class="wood-slot-groove rounded-b-xl p-3 sm:p-4">
-          <div id="player-hand" class="flex items-center justify-center gap-2.5 sm:gap-4 overflow-x-auto min-h-[145px] sm:min-h-[180px] py-2 px-1"></div>
+        <div class="wood-slot-groove rounded-b-xl p-2 sm:p-3 flex items-center justify-center min-h-[105px] sm:min-h-[148px]">
+          <div id="player-hand" class="flex items-center justify-center gap-1.5 sm:gap-2.5 flex-wrap w-full"></div>
         </div>
       </div>
 
@@ -1432,7 +1410,7 @@
       }
     }
 
-            function renderTable() {
+                function renderTable() {
       if (!gameState || !gameState.players) return;
 
       const me = gameState.players.find(p => String(p.id) === String(gameState.myPlayerId)) || gameState.players[0];
@@ -1441,7 +1419,7 @@
       const myActiveIndex = activePlayers.findIndex(p => String(p.id) === String(me.id));
       const targetOpponent = (myActiveIndex !== -1 && activePlayers.length > 1) 
         ? activePlayers[(myActiveIndex + 1) % activePlayers.length]
-        : null;
+        : gameState.players.find(p => String(p.id) !== String(me.id));
 
       // 1. ATUALIZAR STATUS DO JOGADOR
       const playerCardCount = document.getElementById('player-card-count');
@@ -1451,64 +1429,61 @@
       if (playerStatusTag) {
         if (me.isOut) {
           playerStatusTag.textContent = "LIVRE!";
-          playerStatusTag.className = "text-[11px] font-black text-[#fbbf24] tracking-wider uppercase";
+          playerStatusTag.className = "text-[10px] font-black text-[#fbbf24] tracking-wider uppercase";
         } else if (isMyTurn) {
           playerStatusTag.textContent = "JOGANDO";
-          playerStatusTag.className = "text-[11px] font-black text-[#4ade80] tracking-wider uppercase animate-pulse";
+          playerStatusTag.className = "text-[10px] font-black text-[#4ade80] tracking-wider uppercase animate-pulse";
         } else {
           playerStatusTag.textContent = "AGUARDANDO";
-          playerStatusTag.className = "text-[11px] font-black text-[#94a3b8] tracking-wider uppercase";
+          playerStatusTag.className = "text-[10px] font-black text-[#94a3b8] tracking-wider uppercase";
         }
       }
 
-      // 2. RENDERIZAR ADVERSÁRIOS EM CIMA (COM VERSO DE BANANAS E ESTRELAS)
+      // 2. RENDERIZAR BANDEJA SUPERIOR DO ADVERSÁRIO (COM MESMO ESTILO E ALINHAMENTO)
+      const oppAvatar = document.getElementById('opp-avatar-icon');
+      const oppName = document.getElementById('opp-display-name');
+      const oppCount = document.getElementById('opp-display-count');
+      const oppStatus = document.getElementById('opp-status-text');
       const oppContainer = document.getElementById('opponents-container');
-      if (oppContainer) {
+
+      if (targetOpponent && oppContainer) {
+        if (oppAvatar) oppAvatar.textContent = targetOpponent.avatar;
+        if (oppName) oppName.textContent = targetOpponent.name;
+        if (oppCount) oppCount.textContent = `${targetOpponent.hand ? targetOpponent.hand.length : 0} Cartas`;
+        
+        if (oppStatus) {
+          const isOppTurn = gameState.currentTurnIndex === gameState.players.findIndex(p => String(p.id) === String(targetOpponent.id));
+          if (targetOpponent.isOut) {
+            oppStatus.textContent = "LIVRE!";
+            oppStatus.className = "text-[10px] font-black text-[#fbbf24] tracking-wider uppercase";
+          } else if (isOppTurn) {
+            oppStatus.textContent = "JOGANDO";
+            oppStatus.className = "text-[10px] font-black text-[#4ade80] tracking-wider uppercase animate-pulse";
+          } else {
+            oppStatus.textContent = "AGUARDANDO";
+            oppStatus.className = "text-[10px] font-black text-[#facc15] tracking-wider uppercase";
+          }
+        }
+
+        const canPick = isMyTurn && !me.isOut && !targetOpponent.isOut;
         oppContainer.innerHTML = '';
 
-        gameState.players.filter(p => String(p.id) !== String(me.id)).forEach(opp => {
-          const isTarget = targetOpponent && String(targetOpponent.id) === String(opp.id);
-          const canPick = isMyTurn && isTarget && !me.isOut && !opp.isOut;
-
-          const oppBox = document.createElement('div');
-          oppBox.className = `flex flex-col items-center p-2 rounded-2xl transition-all duration-200 ${isTarget ? 'bg-black/30 border-2 border-yellow-400/80 shadow-lg' : 'opacity-80'}`;
-
-          let cardsHtml = '';
-          if (opp.hand && opp.hand.length > 0) {
-            cardsHtml = `
-              <div class="flex items-center justify-center pt-2 pb-1">
-                ${opp.hand.map((card, idx) => `
-                  <div 
-                    class="opp-card-wrapper ${canPick ? 'active-turn-draw cursor-pointer' : 'disabled-card'}"
-                    style="z-index: ${idx + 5};"
-                    ${canPick ? `onclick="window.humanSelectOpponentCard('${opp.id}', ${idx})"` : ''}
-                    title="${canPick ? 'Clique para puxar esta carta!' : 'Aguarde sua vez'}"
-                  >
-                    <div class="opp-card-back"></div>
-                  </div>
-                `).join('')}
-              </div>
-            `;
-          } else {
-            cardsHtml = `<div class="text-xs text-yellow-300 font-bold py-3">🏆 Sem cartas (Livre!)</div>`;
-          }
-
-          oppBox.innerHTML = `
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-lg">${opp.avatar}</span>
-              <span class="text-xs font-black text-[#fef08a] uppercase tracking-wide drop-shadow">${opp.name}</span>
-              <span class="text-[10px] font-black bg-[#ca8a04] text-[#1a1a1a] px-2.5 py-0.5 rounded-full shadow-sm">
-                ${opp.hand ? opp.hand.length : 0} ${opp.hand && opp.hand.length === 1 ? 'Carta' : 'Cartas'}
-              </span>
-            </div>
-            ${cardsHtml}
-          `;
-
-          oppContainer.appendChild(oppBox);
-        });
+        if (targetOpponent.hand && targetOpponent.hand.length > 0) {
+          targetOpponent.hand.forEach((card, idx) => {
+            const cardElem = document.createElement('div');
+            cardElem.className = `opp-card-back ${canPick ? 'active-turn-draw cursor-pointer' : 'disabled-card'}`;
+            cardElem.title = canPick ? "Clique para puxar esta carta!" : "Aguarde sua vez";
+            if (canPick) {
+              cardElem.onclick = () => window.humanSelectOpponentCard(targetOpponent.id, idx);
+            }
+            oppContainer.appendChild(cardElem);
+          });
+        } else {
+          oppContainer.innerHTML = `<div class="text-xs text-yellow-300 font-bold py-3">🏆 Oponente livre (descartou todas as cartas!)</div>`;
+        }
       }
 
-      // 3. RENDERIZAR MESA CENTRAL DE PARES NO MEIO (SUPORTES TUBULARES DE METAL COM TRAVESSAS DE MADEIRA)
+      // 3. RENDERIZAR MESA CENTRAL DE PARES (TUBULAR RACKS COM TRAVESSAS)
       const centralPairsContainer = document.getElementById('central-pairs-container');
       if (centralPairsContainer) {
         centralPairsContainer.innerHTML = '';
@@ -1524,29 +1499,29 @@
           if (p.matchedPairs && p.matchedPairs.length > 0) {
             pairsGridHtml = p.matchedPairs.map(pCard => `
               <div class="mini-pair-card" title="${pCard.name}">
-                <div class="w-full bg-[#f5c518] text-black text-[8px] font-black uppercase text-center py-0.5 border-b border-black tracking-tighter truncate px-0.5">
+                <div class="w-full bg-[#f5c518] text-black text-[7.5px] sm:text-[8px] font-black uppercase text-center py-0.5 border-b border-black tracking-tighter truncate px-0.5">
                   ${pCard.name}
                 </div>
                 <div class="my-auto flex items-center justify-center p-0.5">
-                  ${getCardGraphic(pCard.id, 'w-9 h-9')}
+                  ${getCardGraphic(pCard.id, 'w-8 h-8 sm:w-9 sm:h-9')}
                 </div>
-                <div class="w-full bg-[#f1f5f9] text-[#1a1a1a] text-[8px] font-black uppercase text-center py-0.5 border-t border-[#1a1a1a] tracking-tighter truncate px-0.5">
+                <div class="w-full bg-[#f1f5f9] text-[#1a1a1a] text-[7.5px] sm:text-[8px] font-black uppercase text-center py-0.5 border-t border-[#1a1a1a] tracking-tighter truncate px-0.5">
                   ${pCard.name}
                 </div>
               </div>
             `).join('');
           } else {
-            pairsGridHtml = `<span class="col-span-2 text-[11px] text-emerald-200/60 font-bold italic py-8 px-2">Aguardando pares...</span>`;
+            pairsGridHtml = `<span class="col-span-3 text-[11px] text-emerald-200/60 font-bold italic py-6 px-2 text-center">Aguardando pares...</span>`;
           }
           
           rackBox.innerHTML = `
-            <!-- Travessas Horizontais de Madeira -->
+            <!-- Travessas de Madeira -->
             <div class="wood-slat-beam slat-top"></div>
             <div class="wood-slat-beam slat-bottom"></div>
 
             <!-- Cabeçalho com Nome e Placa de Metal -->
-            <div class="flex items-center justify-between w-full mb-3 z-10">
-              <span class="text-[12px] font-black text-[#fef08a] flex items-center gap-1.5 uppercase tracking-wider drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+            <div class="flex items-center justify-between w-full mb-2 z-10">
+              <span class="text-[11px] sm:text-[12px] font-black text-[#fef08a] flex items-center gap-1 uppercase tracking-wider drop-shadow">
                 <span>${p.avatar}</span>
                 <span class="truncate">${isMe ? 'VOCÊ' : p.name}</span>
               </span>
@@ -1556,7 +1531,7 @@
             </div>
 
             <!-- Grade de Cartas Apoiadas nas Travessas -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 min-h-[130px] items-start relative z-10 pt-1">
+            <div class="grid grid-cols-3 gap-1.5 sm:gap-2 min-h-[115px] items-start relative z-10 pt-1">
               ${pairsGridHtml}
             </div>
           `;
@@ -1564,7 +1539,7 @@
         });
       }
 
-      // 4. RENDERIZAR SUA MÃO EMBAIXO (BANDEJA DE MADEIRA NA BASE)
+      // 4. MÃO DO JOGADOR HUMANO (BANDEJA INFERIOR)
       const playerHandElem = document.getElementById('player-hand');
       if (playerHandElem) {
         playerHandElem.innerHTML = '';
@@ -1579,17 +1554,17 @@
             cardElem.className = `playing-card ${card.isBanana ? 'card-banana-special' : 'card-front'} flex flex-col justify-between`;
             cardElem.innerHTML = `
               <!-- Faixa Superior Amarela -->
-              <div class="flex justify-between items-center w-full px-1.5 py-1 border-b-2 border-[#1a1a1a] bg-[#f5c518] text-[#1a1a1a] text-[10px] sm:text-[12px] font-black uppercase tracking-wider">
-                <span class="text-[8px]">★</span>
+              <div class="flex justify-between items-center w-full px-1 py-0.5 border-b-2 border-[#1a1a1a] bg-[#f5c518] text-[#1a1a1a] text-[9px] sm:text-[11px] font-black uppercase tracking-wider">
+                <span class="text-[7px]">★</span>
                 <span class="truncate tracking-wide">${card.isBanana ? 'BANANA' : card.name}</span>
-                <span class="text-[8px]">★</span>
+                <span class="text-[7px]">★</span>
               </div>
               <!-- Ilustração Fotorrealista Central -->
-              <div class="my-auto flex justify-center items-center py-1 px-1">
-                ${getCardGraphic(card.id, 'w-16 h-16 sm:w-22 sm:h-22')}
+              <div class="my-auto flex justify-center items-center py-0.5 px-0.5 max-h-[60%]">
+                ${getCardGraphic(card.id, 'w-14 h-14 sm:w-20 sm:h-20')}
               </div>
               <!-- Rodapé da Carta -->
-              <div class="text-[10px] sm:text-[12px] font-black uppercase text-center truncate w-full py-0.5 border-t-2 border-[#1a1a1a] ${card.isBanana ? 'bg-[#dc2626] text-white' : 'bg-[#f1f5f9] text-[#1a1a1a]'}">
+              <div class="text-[9px] sm:text-[11px] font-black uppercase text-center truncate w-full py-0.5 border-t-2 border-[#1a1a1a] ${card.isBanana ? 'bg-[#dc2626] text-white' : 'bg-[#f1f5f9] text-[#1a1a1a]'}">
                 ${card.isBanana ? 'MICO / PERDE' : card.name}
               </div>
             `;
