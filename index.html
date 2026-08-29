@@ -321,6 +321,31 @@
     *::-webkit-scrollbar {
       display: none !important;
     }
+
+    /* MEDALHÕES DE AVATAR DE LUXO */
+    .avatar-medallion {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fef08a 0%, #ca8a04 60%, #854d0e 100%);
+      border: 1.5px solid #713f12;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5), inset 0 1px 1px #ffffff;
+      font-size: 14px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .avatar-medallion.silver {
+      background: linear-gradient(135deg, #f3f4f6 0%, #9ca3af 60%, #4b5563 100%);
+      border-color: #374151;
+    }
+    .avatar-medallion.bronze {
+      background: linear-gradient(135deg, #fed7aa 0%, #ea580c 60%, #7c2d12 100%);
+      border-color: #431407;
+    }
+
 </style>
 
   <!-- Supabase JS Client for Realtime Multiplayer -->
@@ -1589,7 +1614,7 @@
       return String(targetPlayer.id) === String(oppId);
     }
 
-    function processTurnState() {
+        function processTurnState() {
       if (!gameState.isGameActive) return;
 
       const activePlayers = gameState.players.filter(p => !p.isOut);
@@ -1612,83 +1637,18 @@
       if (String(currentPlayer.id) === String(gameState.myPlayerId)) {
         if (statusText) statusText.textContent = "Sua Vez! Escolha uma carta do oponente destacado.";
         gameState.isProcessingTurn = false;
+        renderTable();
       } else {
         if (statusText) statusText.textContent = `Vez de ${currentPlayer.name}...`;
+        gameState.isProcessingTurn = true;
+        renderTable();
         if (gameState.mode === 'ai' && !currentPlayer.isHuman) {
-          gameState.isProcessingTurn = true;
           setTimeout(() => botExecuteTurn(currentPlayer), 1200);
         } else {
           gameState.isProcessingTurn = false;
         }
       }
     }
-
-    async function syncOnlineState() {
-      if (gameState.mode !== 'online' || !gameState.onlineRoomCode) return;
-      const code = gameState.onlineRoomCode;
-      const roomUpdate = {
-        code: code,
-        status: gameState.isGameActive ? 'playing' : 'lobby',
-        players: gameState.players,
-        currentTurnIndex: gameState.currentTurnIndex,
-        totalDiscardedPairs: gameState.totalDiscardedPairs || 0,
-        lastUpdated: Date.now()
-      };
-      gameState.onlineRoomData = roomUpdate;
-      try { localStorage.setItem('banana_room_' + code, JSON.stringify(roomUpdate)); } catch(e) {}
-
-      const sb = await getOrCreateSupabase();
-      if (sb) {
-        try {
-          await sb.from('rooms').update({ state: roomUpdate }).eq('code', code);
-        } catch (err) {}
-      }
-      emitBananaRoom('ROOM_UPDATE', { room: roomUpdate });
-    }
-
-    function advanceTurn() {
-      gameState.currentTurnIndex = (gameState.currentTurnIndex + 1) % gameState.players.length;
-      if (gameState.mode === 'online') {
-        syncOnlineState();
-      }
-      processTurnState();
-    }
-
-    window.humanSelectOpponentCard = function(targetOppId, cardIdx) {
-      const me = gameState.players.find(p => String(p.id) === String(gameState.myPlayerId)) || gameState.players[0];
-      const current = gameState.players[gameState.currentTurnIndex];
-
-      if (!current || String(current.id) !== String(me.id) || gameState.isProcessingTurn) return;
-      if (!isOpponentTarget(targetOppId)) return;
-
-      gameState.isProcessingTurn = true;
-      const targetOpp = gameState.players.find(p => String(p.id) === String(targetOppId));
-      if (!targetOpp || !targetOpp.hand || targetOpp.hand.length <= cardIdx) {
-        gameState.isProcessingTurn = false;
-        return;
-      }
-
-      const drawnCard = targetOpp.hand.splice(cardIdx, 1)[0];
-
-      sound.playCardDraw();
-      me.hand.push(drawnCard);
-
-      if (drawnCard.isBanana) sound.playBananaWarning();
-
-      const initialCount = me.hand.length;
-      discardPairsFromHand(me);
-      checkPlayerOutStatus(targetOpp);
-
-      if (me.hand.length < initialCount) sound.playPairMatch();
-
-      renderTable();
-
-      if (gameState.mode === 'online') {
-        syncOnlineState();
-      }
-
-      setTimeout(() => advanceTurn(), 1000);
-    };
 
     function botExecuteTurn(bot) {
       if (!gameState.isGameActive) return;
@@ -1702,7 +1662,7 @@
 
       const targetPlayer = activePlayers[(botActiveIndex + 1) % activePlayers.length];
 
-      if (!targetPlayer || targetPlayer.hand.length === 0) {
+      if (!targetPlayer || !targetPlayer.hand || targetPlayer.hand.length === 0) {
         advanceTurn();
         return;
       }
@@ -1721,7 +1681,7 @@
 
       renderTable();
 
-      setTimeout(() => advanceTurn(), 1000);
+      setTimeout(() => advanceTurn(), 900);
     }
 
     function endGame(loser) {
