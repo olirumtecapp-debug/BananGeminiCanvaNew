@@ -1602,7 +1602,7 @@
       if (pairsCounter) pairsCounter.textContent = `${gameState.totalDiscardedPairs || 0} / 12 Pares`;
     }
 
-    function isOpponentTarget(oppId) {
+        function isOpponentTarget(oppId) {
       const activePlayers = gameState.players.filter(p => !p.isOut);
       const current = gameState.players[gameState.currentTurnIndex];
       if (!current) return false;
@@ -1614,7 +1614,75 @@
       return String(targetPlayer.id) === String(oppId);
     }
 
-        function processTurnState() {
+    async function syncOnlineState() {
+      if (gameState.mode !== 'online' || !gameState.onlineRoomCode) return;
+      const code = gameState.onlineRoomCode;
+      const roomUpdate = {
+        code: code,
+        status: gameState.isGameActive ? 'playing' : 'lobby',
+        players: gameState.players,
+        currentTurnIndex: gameState.currentTurnIndex,
+        totalDiscardedPairs: gameState.totalDiscardedPairs || 0,
+        lastUpdated: Date.now()
+      };
+      gameState.onlineRoomData = roomUpdate;
+      try { localStorage.setItem('banana_room_' + code, JSON.stringify(roomUpdate)); } catch(e) {}
+
+      const sb = await getOrCreateSupabase();
+      if (sb) {
+        try {
+          await sb.from('rooms').update({ state: roomUpdate }).eq('code', code);
+        } catch (err) {}
+      }
+      emitBananaRoom('ROOM_UPDATE', { room: roomUpdate });
+    }
+
+    function advanceTurn() {
+      if (!gameState.isGameActive) return;
+      gameState.currentTurnIndex = (gameState.currentTurnIndex + 1) % gameState.players.length;
+      if (gameState.mode === 'online') {
+        syncOnlineState();
+      }
+      processTurnState();
+    }
+
+    window.humanSelectOpponentCard = function(targetOppId, cardIdx) {
+      const me = gameState.players.find(p => String(p.id) === String(gameState.myPlayerId)) || gameState.players[0];
+      const current = gameState.players[gameState.currentTurnIndex];
+
+      if (!current || String(current.id) !== String(me.id) || gameState.isProcessingTurn) return;
+      if (!isOpponentTarget(targetOppId)) return;
+
+      gameState.isProcessingTurn = true;
+      const targetOpp = gameState.players.find(p => String(p.id) === String(targetOppId));
+      if (!targetOpp || !targetOpp.hand || targetOpp.hand.length <= cardIdx) {
+        gameState.isProcessingTurn = false;
+        return;
+      }
+
+      const drawnCard = targetOpp.hand.splice(cardIdx, 1)[0];
+
+      sound.playCardDraw();
+      me.hand.push(drawnCard);
+
+      if (drawnCard.isBanana) sound.playBananaWarning();
+
+      const initialCount = me.hand.length;
+      discardPairsFromHand(me);
+      checkPlayerOutStatus(targetOpp);
+
+      if (me.hand.length < initialCount) sound.playPairMatch();
+
+      renderTable();
+
+      if (gameState.mode === 'online') {
+        syncOnlineState();
+      }
+
+      setTimeout(() => advanceTurn(), 900);
+    };
+
+    function processTurnState() {
       if (!gameState.isGameActive) return;
 
       const activePlayers = gameState.players.filter(p => !p.isOut);
