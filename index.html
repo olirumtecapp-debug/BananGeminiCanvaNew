@@ -477,6 +477,48 @@
       100% { opacity: 1; transform: scale(1) translateY(0); }
     }
 
+
+    /* AVATARES ESTILO HQ / COMICS */
+    .comic-avatar-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2.5px solid #000000;
+      background: #ffffff;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .comic-avatar-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .comic-avatar-badge-sm {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid #000000;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .comic-avatar-badge-sm img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
 </style>
 
   <!-- Supabase JS Client for Realtime Multiplayer -->
@@ -958,7 +1000,7 @@
       {
         id: 'vovo',
         name: 'Vovó',
-        avatar: '👵',
+        avatar: '👵', img: './assets/characters/vovo.png',
         lines: {
           start: ["Toma um cafezinho enquanto eu venço!", "Na minha época não tinha essa banana!", "Vovó tá atenta, meu bem!"],
           pair: ["Mais um parzinho pra coleção da vovó!", "Ponto pra experiência!", "Facinho como fazer bolo!"],
@@ -970,7 +1012,7 @@
       {
         id: 'dj',
         name: 'DJ',
-        avatar: '🎧',
+        avatar: '🎧', img: './assets/characters/dj.png',
         lines: {
           start: ["Solta a batida e passa a carta!", "Esse jogo vai ser no meu compasso!", "Toca o som da vitória!"],
           pair: ["Par no ritmo certo! Dropou!", "Esse combo foi mixado!", "Mais um hit pro meu set!"],
@@ -982,7 +1024,7 @@
       {
         id: 'detetive',
         name: 'Detetive',
-        avatar: '🕵️',
+        avatar: '🕵️', img: './assets/characters/detetive.png',
         lines: {
           start: ["Elementar, meu caro!", "Estou analisando cada blefe...", "Pelas minhas pistas, já sei sua jogada!"],
           pair: ["Caso resolvido: par perfeito!", "As pistas me levaram ao par!", "Evidência incontestável!"],
@@ -994,7 +1036,7 @@
       {
         id: 'chef',
         name: 'Chef',
-        avatar: '👩‍🍳',
+        avatar: '👩‍🍳', img: './assets/characters/chef.png',
         lines: {
           start: ["Preparando a receita da vitória!", "Esse jogo tá saindo do forno!", "Menu de hoje: você perder!"],
           pair: ["Receita de par perfeita!", "Um par no ponto certo!", "Mais um prato premiado!"],
@@ -1006,7 +1048,7 @@
       {
         id: 'piloto',
         name: 'Piloto',
-        avatar: '👩‍✈️',
+        avatar: '👩‍✈️', img: './assets/characters/piloto.png',
         lines: {
           start: ["Apertem os cintos, vamos decolar!", "Voando alto rumo à vitória!", "Condições perfeitas para vencer!"],
           pair: ["Pouso perfeito com esse par!", "Alcançando altitude máxima!", "Manobra de mestre!"],
@@ -1018,7 +1060,7 @@
       {
         id: 'pirata',
         name: 'Pirata',
-        avatar: '🏴‍☠️',
+        avatar: '🏴‍☠️', img: './assets/characters/pirata.png',
         lines: {
           start: ["Arrr! Entregue seu tesouro!", "Quem ficar com o mico anda na prancha!", "Zarpando para saquear as cartas!"],
           pair: ["Um baú de ouro com esse par!", "Tesouro resgatado, marujo!", "Arrr, esse par é meu!"],
@@ -1030,7 +1072,7 @@
       {
         id: 'cientista',
         name: 'Cientista',
-        avatar: '👩‍🔬',
+        avatar: '👩‍🔬', img: './assets/characters/cientista.png',
         lines: {
           start: ["Calculando probabilidade da vitória...", "Hipótese: você vai perder!", "Experimento iniciado!"],
           pair: ["Fusão molecular de pares bem-sucedida!", "Estatisticamente brilhante!", "Teoria comprovada!"],
@@ -1042,7 +1084,7 @@
       {
         id: 'skatista',
         name: 'Skatista',
-        avatar: '🛹',
+        avatar: '🛹', img: './assets/characters/skatista.png',
         lines: {
           start: ["Manda a manobra que eu tô pronto!", "Na pista pra vencer!", "Relaxa que o rolê tá suave!"],
           pair: ["Mandei um kickflip e fiz o par!", "Manobra insana!", "Caiu na base perfeitamente!"],
@@ -1054,7 +1096,7 @@
       {
         id: 'diva',
         name: 'Diva',
-        avatar: '💃',
+        avatar: '💃', img: './assets/characters/diva.png',
         lines: {
           start: ["Brilho e glamour nessa mesa!", "O palco é meu, queridos!", "Pronta para arrasar!"],
           pair: ["Um escândalo de par!", "Aplausos para essa jogada!", "Puro talento e elegância!"],
@@ -1066,7 +1108,7 @@
       {
         id: 'robo',
         name: 'Robô',
-        avatar: '🤖',
+        avatar: '🤖', img: './assets/characters/robo.png',
         lines: {
           start: ["Iniciando protocolo de jogo...", "Algoritmo de vitória carregado.", "Processando seus padrões de blefe."],
           pair: ["Par identificado e consolidado com sucesso.", "Otimização de dados: +1 Par.", "Eficiência máxima alcançada."],
@@ -1079,7 +1121,7 @@
 
     let selectedPlayerCharId = 'dj';
 
-    function initCharacterSelectionUI() {
+        function initCharacterSelectionUI() {
       const grid = document.getElementById('character-selection-grid');
       if (!grid) return;
       grid.innerHTML = CHARACTERS_ROSTER.map(c => `
@@ -1088,7 +1130,9 @@
           id="char-btn-${c.id}" 
           class="char-select-btn ${c.id === selectedPlayerCharId ? 'selected' : ''}"
         >
-          <div class="char-avatar-circle">${c.avatar}</div>
+          <div class="char-avatar-circle overflow-hidden p-0">
+            <img src="${c.img || './assets/characters/' + c.id + '.png'}" alt="${c.name}" class="w-full h-full object-cover" />
+          </div>
           <span class="char-name text-[10px] font-black text-yellow-300 uppercase tracking-tighter truncate w-full text-center">
             ${c.name}
           </span>
@@ -1102,6 +1146,16 @@
       const activeBtn = document.getElementById(`char-btn-${charId}`);
       if (activeBtn) activeBtn.classList.add('selected');
     };
+
+        function getAvatarBadgeHtml(player, isSmall = false) {
+      if (player && player.charData && player.charData.img) {
+        return `<span class="${isSmall ? 'comic-avatar-badge-sm' : 'comic-avatar-badge'}"><img src="${player.charData.img}" alt="${player.name}" /></span>`;
+      }
+      if (player && player.img) {
+        return `<span class="${isSmall ? 'comic-avatar-badge-sm' : 'comic-avatar-badge'}"><img src="${player.img}" alt="${player.name}" /></span>`;
+      }
+      return `<span class="${isSmall ? 'text-xs' : 'text-base'}">${player ? (player.avatar || '👑') : '👑'}</span>`;
+    }
 
     function triggerSpeechBubble(targetType, text) {
       const bubble = document.getElementById(targetType === 'player' ? 'player-speech-bubble' : 'opp-speech-bubble');
